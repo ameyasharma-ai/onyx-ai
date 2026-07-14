@@ -547,7 +547,7 @@ export default function AppPage({ firstMessage }: ChatPageProps) {
   }
 
   const onChat = useCallback(
-    (message: string) => {
+    (message: string, disableThinking?: boolean) => {
       if (multiModel.isMultiModelActive) {
         foldSidebarForMultiModel();
       }
@@ -561,6 +561,7 @@ export default function AppPage({ firstMessage }: ChatPageProps) {
         selectedModels: multiModel.isMultiModelActive
           ? multiModel.selectedModels
           : undefined,
+        additionalContext: disableThinking ? "Do not use <think> tags or chain-of-thought reasoning." : undefined,
       });
       if (showOnboarding || !onboardingDismissed) {
         finishOnboarding();
@@ -603,7 +604,7 @@ export default function AppPage({ firstMessage }: ChatPageProps) {
   );
 
   const handleAppInputBarSubmit = useCallback(
-    async (message: string) => {
+    async (message: string, disableThinking?: boolean) => {
       // If we're in an existing chat session, always use chat mode
       // (appMode only applies to new sessions)
       if (currentChatSessionId) {
@@ -617,6 +618,7 @@ export default function AppPage({ firstMessage }: ChatPageProps) {
           selectedModels: multiModel.isMultiModelActive
             ? multiModel.selectedModels
             : undefined,
+          additionalContext: disableThinking ? "Do not use <think> tags or chain-of-thought reasoning." : undefined,
         });
         if (showOnboarding || !onboardingDismissed) {
           finishOnboarding();
@@ -628,7 +630,7 @@ export default function AppPage({ firstMessage }: ChatPageProps) {
       // resetInputBar is called inside onChat for chat-routed queries.
       // For search-routed queries, the input bar is intentionally kept
       // so the user can see and refine their search query.
-      await submitQuery(message, onChat);
+      await submitQuery(message, (msg) => onChat(msg, disableThinking));
     },
     [
       currentChatSessionId,

@@ -1934,3 +1934,13 @@ STRIPE_PUBLISHABLE_KEY_URL = (
 )
 # Override for local testing with Stripe test keys (pk_test_*)
 STRIPE_PUBLISHABLE_KEY_OVERRIDE = os.environ.get("STRIPE_PUBLISHABLE_KEY")
+
+
+## Live Voice Configuration
+VOICE_STREAMING_ENABLED = os.environ.get('VOICE_STREAMING_ENABLED', 'true').lower() == 'true'
+VOICE_CHUNK_SIZE = int(os.environ.get('VOICE_CHUNK_SIZE', '4096'))
+VOICE_SILENCE_TIMEOUT = float(os.environ.get('VOICE_SILENCE_TIMEOUT', '1.0'))
+VOICE_INTERRUPT_ENABLED = os.environ.get('VOICE_INTERRUPT_ENABLED', 'true').lower() == 'true'
+VOICE_MAX_SESSION_DURATION = int(os.environ.get('VOICE_MAX_SESSION_DURATION', '3600'))
+VOICE_DEFAULT_MODE = os.environ.get('VOICE_DEFAULT_MODE', 'live')
+

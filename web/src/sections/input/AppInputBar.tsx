@@ -32,6 +32,7 @@ import { FileCard } from "@/sections/cards/FileCard";
 import { ProjectFile, UserFileStatus } from "@/lib/projects/types";
 import FilePickerPopover from "@/refresh-components/popovers/FilePickerPopover";
 import ActionsPopover from "@/refresh-components/popovers/ActionsPopover";
+import { LiveVoiceUI } from "@/components/voice/LiveVoiceUI";
 import {
   getIconForAction,
   hasSearchToolsAvailable,
@@ -55,8 +56,10 @@ import { Section } from "@/layouts/general-layouts";
 import { Spacer } from "@opal/components";
 import MicrophoneButton from "@/sections/input/MicrophoneButton";
 import Waveform from "@/components/voice/Waveform";
+import Link from "next/link";
 import { useVoiceMode } from "@/providers/VoiceModeProvider";
 import { useVoiceStatus } from "@/hooks/useVoiceStatus";
+import { useRouter } from "next/navigation";
 import {
   useCurrentQueuedMessages,
   useCurrentLatestMessageRenderComplete,
@@ -73,7 +76,7 @@ export interface AppInputBarHandle {
 export interface AppInputBarProps {
   initialMessage?: string;
   stopGenerating: () => void;
-  onSubmit: (message: string) => void;
+  onSubmit: (message: string, disableThinking?: boolean) => void;
   llmManager: LlmManager;
   chatState: ChatState;
   currentSessionFileTokenCount: number;
@@ -122,6 +125,8 @@ const AppInputBar = React.memo(
     onToggleTabReading,
   }: AppInputBarProps) => {
     const [isRecording, setIsRecording] = useState(false);
+    const [showLiveVoice, setShowLiveVoice] = useState(false);
+    const [disableThinking, setDisableThinking] = useState(false);
     const [recordingCycleCount, setRecordingCycleCount] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [audioLevel, setAudioLevel] = useState(0);
@@ -204,6 +209,7 @@ const AppInputBar = React.memo(
       (isNewSession && appMode === "search") || isSearchActive;
 
     // Keyed by chat session id, or "new" until the session is created.
+    const router = useRouter();
     const chatSessionId = appFocus.isChat() ? appFocus.getId() : null;
     const chatDraftStorageKey = draftKey("chat", chatSessionId ?? "new");
     const {
@@ -265,9 +271,9 @@ const AppInputBar = React.memo(
     const handleSubmit = useCallback(
       (text: string) => {
         stopTTS();
-        onSubmit(text);
+        onSubmit(text, disableThinking);
       },
-      [stopTTS, onSubmit]
+      [stopTTS, onSubmit, disableThinking]
     );
     const submitMessage = useCallback(
       (text: string) => {
@@ -757,6 +763,30 @@ const AppInputBar = React.memo(
             ))}
 
           <Button
+            type="button"
+            icon={SvgGlobe}
+            aria-label="Live Voice Mode"
+            prominence="tertiary"
+            tooltip="Live Voice Mode"
+            onClick={(e) => {
+              e.preventDefault();
+              setShowLiveVoice(true);
+            }}
+          />
+
+          <Button
+            type="button"
+            icon={disableThinking ? SvgStop : SvgGlobe} // Reuse globe or stop for now, could use a brain icon if available
+            aria-label={disableThinking ? "Enable Thinking" : "Disable Thinking"}
+            prominence="tertiary"
+            tooltip={disableThinking ? "Enable Thinking" : "Disable Thinking"}
+            onClick={(e) => {
+              e.preventDefault();
+              setDisableThinking(!disableThinking);
+            }}
+          />
+
+          <Button
             disabled={
               (chatState === "input" &&
                 !isVoicePlaybackControllable &&
@@ -1069,6 +1099,12 @@ const AppInputBar = React.memo(
             )}
           </div>
         </Disabled>
+        {showLiveVoice && (
+          <LiveVoiceUI 
+            chatSessionId={chatSessionId ?? undefined} 
+            onClose={() => setShowLiveVoice(false)} 
+          />
+        )}
       </>
     );
   }

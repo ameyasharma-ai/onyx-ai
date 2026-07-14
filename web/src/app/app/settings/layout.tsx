@@ -5,6 +5,7 @@ import type { Route } from "next";
 import { SettingsLayouts } from "@opal/layouts";
 import { SidebarTab, Text } from "@opal/components";
 import { SvgSliders } from "@opal/icons";
+import { X } from "lucide-react";
 import InputSelect from "@/refresh-components/inputs/InputSelect";
 import { useUser } from "@/providers/UserProvider";
 import { useAuthType } from "@/lib/auth/hooks";
@@ -45,7 +46,15 @@ export default function Layout({ children }: LayoutProps) {
   const activeTab = tabs.find((tab) => tab.href === pathname);
 
   return (
-    <SettingsLayouts.Root width="lg">
+    <div className="relative w-full h-full">
+      <button 
+        onClick={() => router.back()}
+        className="absolute top-6 right-6 z-50 p-2 hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded-full transition-colors cursor-pointer"
+        aria-label="Close Settings"
+      >
+        <X className="w-6 h-6 text-neutral-500" />
+      </button>
+      <SettingsLayouts.Root width="lg">
       <SettingsLayouts.Header icon={SvgSliders} title="Settings" divider />
 
       <SettingsLayouts.Body>
@@ -105,5 +114,6 @@ export default function Layout({ children }: LayoutProps) {
         </Section>
       </SettingsLayouts.Body>
     </SettingsLayouts.Root>
+    </div>
   );
 }

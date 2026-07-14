@@ -58,8 +58,6 @@ services:
         condition: service_started
       cache:
         condition: service_started
-      inference_model_server:
-        condition: service_started
       minio:
         condition: service_started
         required: false
@@ -85,6 +83,7 @@ services:
       # Onyx Craft configuration (disabled by default, set ENABLE_CRAFT=true in .env to enable)
       # Use --include-craft with install script, or manually set in .env file
       - ENABLE_CRAFT=${ENABLE_CRAFT:-false}
+      - DISABLE_MODEL_SERVER=true
     # PRODUCTION: Uncomment the line below to use if IAM_AUTH is true and you are using iam auth for postgres
     # volumes:
     #   - ./bundle.pem:/app/bundle.pem:ro
@@ -116,6 +115,9 @@ services:
       - api_server_logs:/var/log/onyx
       # Shared volume for persistent document storage (Craft file-system mode)
       - file-system:/app/file-system
+      # Bypass docker build crash by mounting fixed files directly
+      - ../../backend/onyx/voice/pipeline.py:/app/onyx/voice/pipeline.py
+      - ../../backend/onyx/server/manage/voice/live_session.py:/app/onyx/server/manage/voice/live_session.py
 
   background:
     image: ${ONYX_BACKEND_IMAGE:-onyxdotapp/onyx-backend:${IMAGE_TAG:-latest}}
@@ -137,10 +139,6 @@ services:
       opensearch:
         condition: service_started
       cache:
-        condition: service_started
-      inference_model_server:
-        condition: service_started
-      indexing_model_server:
         condition: service_started
     restart: unless-stopped
     environment:
@@ -171,6 +169,9 @@ services:
       - background_logs:/var/log/onyx
       # Shared volume for persistent document storage (Craft file-system mode)
       - file-system:/app/file-system
+      # Bypass docker build crash by mounting fixed files directly
+      - ../../backend/onyx/voice/pipeline.py:/app/onyx/voice/pipeline.py
+      - ../../backend/onyx/server/manage/voice/live_session.py:/app/onyx/server/manage/voice/live_session.py
     logging:
       driver: json-file
       options:
@@ -260,94 +261,94 @@ services:
   #   volumes:
   #     - mcp_server_logs:/var/log/onyx
 
-  inference_model_server:
-    image: ${ONYX_MODEL_SERVER_IMAGE:-onyxdotapp/onyx-model-server:${IMAGE_TAG:-latest}}
-    build:
-      context: ../../backend
-      dockerfile: Dockerfile.model_server
-    # GPU Support: Uncomment the following lines to enable GPU support
-    # Requires nvidia-container-toolkit to be installed on the host
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
-    env_file:
-      - path: .env
-        required: false
-    restart: unless-stopped
-    volumes:
-      # Not necessary, this is just to reduce download time during startup
-      - model_cache_huggingface:/app/.cache/huggingface/
-      # Optional, only for debugging purposes
-      - inference_model_server_logs:/var/log/onyx
-    logging:
-      driver: json-file
-      options:
-        max-size: "50m"
-        max-file: "6"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost:9000/api/health')",
-        ]
-      interval: 20s
-      timeout: 5s
-      retries: 3
-      # Generous start_period to absorb HuggingFace model downloads on first
-      # boot. Healthy is reported as soon as /api/health responds.
-      start_period: 600s
-
-  indexing_model_server:
-    image: ${ONYX_MODEL_SERVER_IMAGE:-onyxdotapp/onyx-model-server:${IMAGE_TAG:-latest}}
-    build:
-      context: ../../backend
-      dockerfile: Dockerfile.model_server
-    # GPU Support: Uncomment the following lines to enable GPU support
-    # Requires nvidia-container-toolkit to be installed on the host
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
-    env_file:
-      - path: .env
-        required: false
-    restart: unless-stopped
-    environment:
-      - INDEXING_ONLY=True
-    volumes:
-      # Not necessary, this is just to reduce download time during startup
-      - indexing_huggingface_model_cache:/app/.cache/huggingface/
-      # Optional, only for debugging purposes
-      - indexing_model_server_logs:/var/log/onyx
-    logging:
-      driver: json-file
-      options:
-        max-size: "50m"
-        max-file: "6"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost:9000/api/health')",
-        ]
-      interval: 20s
-      timeout: 5s
-      retries: 3
-      # Generous start_period to absorb HuggingFace model downloads on first
-      # boot. Healthy is reported as soon as /api/health responds.
-      start_period: 600s
-
+#   inference_model_server:
+#     image: ${ONYX_MODEL_SERVER_IMAGE:-onyxdotapp/onyx-model-server:${IMAGE_TAG:-latest}}
+#     build:
+#       context: ../../backend
+#       dockerfile: Dockerfile.model_server
+#     # GPU Support: Uncomment the following lines to enable GPU support
+#     # Requires nvidia-container-toolkit to be installed on the host
+#     # deploy:
+#     #   resources:
+#     #     reservations:
+#     #       devices:
+#     #         - driver: nvidia
+#     #           count: all
+#     #           capabilities: [gpu]
+#     env_file:
+#       - path: .env
+#         required: false
+#     restart: unless-stopped
+#     volumes:
+#       # Not necessary, this is just to reduce download time during startup
+#       - model_cache_huggingface:/app/.cache/huggingface/
+#       # Optional, only for debugging purposes
+#       - inference_model_server_logs:/var/log/onyx
+#     logging:
+#       driver: json-file
+#       options:
+#         max-size: "50m"
+#         max-file: "6"
+#     healthcheck:
+#       test:
+#         [
+#           "CMD",
+#           "python",
+#           "-c",
+#           "import urllib.request; urllib.request.urlopen('http://localhost:9000/api/health')",
+#         ]
+#       interval: 20s
+#       timeout: 5s
+#       retries: 3
+#       # Generous start_period to absorb HuggingFace model downloads on first
+#       # boot. Healthy is reported as soon as /api/health responds.
+#       start_period: 600s
+# 
+#   indexing_model_server:
+#     image: ${ONYX_MODEL_SERVER_IMAGE:-onyxdotapp/onyx-model-server:${IMAGE_TAG:-latest}}
+#     build:
+#       context: ../../backend
+#       dockerfile: Dockerfile.model_server
+#     # GPU Support: Uncomment the following lines to enable GPU support
+#     # Requires nvidia-container-toolkit to be installed on the host
+#     # deploy:
+#     #   resources:
+#     #     reservations:
+#     #       devices:
+#     #         - driver: nvidia
+#     #           count: all
+#     #           capabilities: [gpu]
+#     env_file:
+#       - path: .env
+#         required: false
+#     restart: unless-stopped
+#     environment:
+#       - INDEXING_ONLY=True
+#     volumes:
+#       # Not necessary, this is just to reduce download time during startup
+#       - indexing_huggingface_model_cache:/app/.cache/huggingface/
+#       # Optional, only for debugging purposes
+#       - indexing_model_server_logs:/var/log/onyx
+#     logging:
+#       driver: json-file
+#       options:
+#         max-size: "50m"
+#         max-file: "6"
+#     healthcheck:
+#       test:
+#         [
+#           "CMD",
+#           "python",
+#           "-c",
+#           "import urllib.request; urllib.request.urlopen('http://localhost:9000/api/health')",
+#         ]
+#       interval: 20s
+#       timeout: 5s
+#       retries: 3
+#       # Generous start_period to absorb HuggingFace model downloads on first
+#       # boot. Healthy is reported as soon as /api/health responds.
+#       start_period: 600s
+# 
   relational_db:
     image: ${BASE_IMAGE_REGISTRY:-docker.io}/library/postgres:15.2-alpine
     shm_size: 1g
@@ -393,7 +394,7 @@ services:
       # See https://opster.com/guides/opensearch/opensearch-basics/opensearch-heap-size-usage-and-jvm-garbage-collection/
       # Xms is the starting size, Xmx is the maximum size. These should be the
       # same.
-      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
     volumes:
       - opensearch-data:/usr/share/opensearch/data
     # These come from the example in https://docs.opensearch.org/latest/install-and-configure/install-opensearch/docker/
@@ -517,23 +518,23 @@ services:
       timeout: 20s
       retries: 3
 
-  code-interpreter:
-    image: onyxdotapp/code-interpreter:${CODE_INTERPRETER_IMAGE_TAG:-latest}
-    command: ["bash", "./entrypoint.sh", "code-interpreter-api"]
-    restart: unless-stopped
-    env_file:
-      - path: .env
-        required: false
-
-    # Below is needed for the `docker-out-of-docker` execution mode
-    # For Linux rootless Docker, set DOCKER_SOCK_PATH=${XDG_RUNTIME_DIR}/docker.sock
-    user: root
-    volumes:
-      - ${DOCKER_SOCK_PATH:-/var/run/docker.sock}:/var/run/docker.sock
-
-    # uncomment below + comment out the above to use the `docker-in-docker` execution mode
-    # privileged: true
-
+#   code-interpreter:
+#     image: onyxdotapp/code-interpreter:${CODE_INTERPRETER_IMAGE_TAG:-latest}
+#     command: ["bash", "./entrypoint.sh", "code-interpreter-api"]
+#     restart: unless-stopped
+#     env_file:
+#       - path: .env
+#         required: false
+# 
+#     # Below is needed for the `docker-out-of-docker` execution mode
+#     # For Linux rootless Docker, set DOCKER_SOCK_PATH=${XDG_RUNTIME_DIR}/docker.sock
+#     user: root
+#     volumes:
+#       - ${DOCKER_SOCK_PATH:-/var/run/docker.sock}:/var/run/docker.sock
+# 
+#     # uncomment below + comment out the above to use the `docker-in-docker` execution mode
+#     # privileged: true
+# 
   # PRODUCTION: Uncomment the following certbot service for SSL certificate management
   # certbot:
   #   image: certbot/certbot

@@ -44,19 +44,16 @@ export function useVoicePlayback(): UseVoicePlaybackReturn {
   }, [setManualTTSPlaying]);
 
   const pause = useCallback(() => {
-    // Streaming player currently supports stop/resume via restart, not true pause.
     stop();
   }, [stop]);
 
   const play = useCallback(
     async (text: string, voice?: string, speed?: number) => {
-      // Stop any existing playback
       stop();
       suppressPlayerErrorsRef.current = false;
       setError(null);
       setIsLoading(true);
 
-      // Strip markdown so TTS engines don't read syntax (e.g. "#") aloud literally.
       const cleanedText = stripMarkdownForTTS(text);
 
       try {
@@ -86,7 +83,6 @@ export function useVoicePlayback(): UseVoicePlaybackReturn {
         setIsLoading(false);
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
-          // Request was cancelled, not an error
           return;
         }
         const message =

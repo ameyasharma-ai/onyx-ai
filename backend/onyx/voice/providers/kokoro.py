@@ -21,7 +21,7 @@ from onyx.voice.interface import VoiceProviderInterface
 
 logger = setup_logger()
 
-DEFAULT_KOKORO_URL = "http://localhost:8880"
+DEFAULT_KOKORO_URL = "http://kokoro:8880"
 
 # Timeout for TTS synthesis requests (seconds).
 SYNTHESIZE_TIMEOUT_SECONDS = 120
