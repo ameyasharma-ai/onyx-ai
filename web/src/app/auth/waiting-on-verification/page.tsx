@@ -4,9 +4,7 @@ import { AuthTypeMetadata } from "@/lib/auth/types";
 import { redirect } from "next/navigation";
 import { User } from "@/lib/types";
 import { RequestNewVerificationEmail } from "./RequestNewVerificationEmail";
-import { Logo } from "@/lib/app/components";
-import { Text } from "@opal/components";
-import { markdown } from "@opal/utils";
+import AuthFlowContainer from "@/components/auth/AuthFlowContainer";
 
 export default async function Page() {
   // catch cases where the backend is completely unreachable here
@@ -32,24 +30,23 @@ export default async function Page() {
   }
 
   return (
-    <main>
-      <div className="min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 gap-4">
-        <Logo folded size={64} className="mx-auto w-fit" />
+    <AuthFlowContainer>
+      <div className="flex flex-col items-center justify-center p-8 gap-6 text-center text-gray-300">
         <div className="flex flex-col gap-2">
-          <Text as="span">
-            {markdown(
-              `Hey, *${currentUser.email}*, it looks like you haven't verified your email yet.\nCheck your inbox for an email from us to get started!`
-            )}
-          </Text>
-          <div className="flex flex-row items-center gap-1">
-            <Text as="span">If you don't see anything, click</Text>
-            <RequestNewVerificationEmail email={currentUser.email}>
-              <Text as="span">here</Text>
-            </RequestNewVerificationEmail>
-            <Text as="span">to request a new email.</Text>
-          </div>
+          <p>
+            Hey <strong>{currentUser.email}</strong>, it looks like you haven't verified your email yet.
+          </p>
+          <p>Check your inbox for an email from us to get started!</p>
+        </div>
+        <div className="flex flex-col items-center gap-2 mt-4">
+          <p className="text-sm text-gray-400">Didn't receive an email?</p>
+          <RequestNewVerificationEmail email={currentUser.email}>
+            <button className="w-full flex items-center justify-center gap-2 py-3 px-6 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl transition-all duration-200 shadow-md shadow-indigo-900/20">
+              Resend Verification Email
+            </button>
+          </RequestNewVerificationEmail>
         </div>
       </div>
-    </main>
+    </AuthFlowContainer>
   );
 }

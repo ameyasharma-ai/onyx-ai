@@ -57,7 +57,11 @@ const dmMono = DM_Mono({
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { icons: await generateFaviconMetadata() };
+  return { 
+    title: "PersonaLabs",
+    description: "Conversations that remember. Build relationships with intelligent characters.",
+    icons: await generateFaviconMetadata() 
+  };
 }
 
 interface LayoutProps {

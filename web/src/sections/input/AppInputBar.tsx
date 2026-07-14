@@ -40,10 +40,12 @@ import {
 import {
   SvgArrowUp,
   SvgGlobe,
+  SvgHeadsetMic,
   SvgHourglass,
   SvgMicrophone,
   SvgPaperclip,
   SvgPlus,
+  SvgLightbulbSimple,
   SvgSearch,
   SvgStop,
   SvgX,
@@ -764,7 +766,7 @@ const AppInputBar = React.memo(
 
           <Button
             type="button"
-            icon={SvgGlobe}
+            icon={SvgHeadsetMic}
             aria-label="Live Voice Mode"
             prominence="tertiary"
             tooltip="Live Voice Mode"
@@ -776,7 +778,7 @@ const AppInputBar = React.memo(
 
           <Button
             type="button"
-            icon={disableThinking ? SvgStop : SvgGlobe} // Reuse globe or stop for now, could use a brain icon if available
+            icon={disableThinking ? SvgStop : SvgLightbulbSimple} // Distinct thinking icon
             aria-label={disableThinking ? "Enable Thinking" : "Disable Thinking"}
             prominence="tertiary"
             tooltip={disableThinking ? "Enable Thinking" : "Disable Thinking"}

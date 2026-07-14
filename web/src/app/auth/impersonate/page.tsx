@@ -89,9 +89,13 @@ export default function ImpersonatePage() {
                 placeholder="Enter API Key"
               />
 
-              <Button disabled={isSubmitting} type="submit" width="full">
+              <button 
+                disabled={isSubmitting} 
+                type="submit" 
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-400 text-white font-medium rounded-xl transition-all duration-200 shadow-md shadow-indigo-900/20"
+              >
                 Impersonate User
-              </Button>
+              </button>
             </Form>
           )}
         </Formik>

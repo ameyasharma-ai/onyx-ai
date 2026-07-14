@@ -29,7 +29,10 @@ export function Logo({ folded, size, className, onyxBranded }: LogoProps) {
     return folded ? (
       <SvgOnyxLogo size={resolvedSize} className={cn("shrink-0", className)} />
     ) : (
-      <SvgOnyxLogoTyped size={resolvedSize} className={className} />
+      <div className={cn("flex items-center gap-2", className)}>
+        <SvgOnyxLogo size={resolvedSize} className="shrink-0" />
+        <span className="text-xl font-bold tracking-tight">PersonaLabs</span>
+      </div>
     );
   }
 
@@ -73,7 +76,7 @@ export function Logo({ folded, size, className, onyxBranded }: LogoProps) {
                   className={"line-clamp-1 truncate"}
                   nowrap
                 >
-                  Powered by Onyx
+                  Powered by PersonaLabs
                 </Text>
               )}
           </div>
@@ -98,6 +101,9 @@ export function Logo({ folded, size, className, onyxBranded }: LogoProps) {
   ) : folded ? (
     <SvgOnyxLogo size={resolvedSize} className={cn("shrink-0", className)} />
   ) : (
-    <SvgOnyxLogoTyped size={resolvedSize} className={className} />
+    <div className={cn("flex items-center gap-2", className)}>
+      <SvgOnyxLogo size={resolvedSize} className="shrink-0" />
+      <span className="text-xl font-bold tracking-tight text-text-900">PersonaLabs</span>
+    </div>
   );
 }

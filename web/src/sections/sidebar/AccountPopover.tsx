@@ -177,9 +177,9 @@ function SettingsPopover({
             orientation="reverse"
             icon={SvgOnyxLogo}
             title={markdown(
-              `[Onyx ${
+              `PersonaLabs ${
                 settings.version ?? "dev"
-              }](https://docs.onyx.app/changelog)`
+              }`
             )}
           />
         </div>,

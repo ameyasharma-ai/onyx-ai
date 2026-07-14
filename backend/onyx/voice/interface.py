@@ -87,7 +87,7 @@ class VoiceProviderInterface(ABC):
         """
 
     @abstractmethod
-    def synthesize_stream(
+    async def synthesize_stream(
         self, text: str, voice: str | None = None, speed: float = 1.0
     ) -> AsyncIterator[bytes]:
         """

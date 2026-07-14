@@ -67,14 +67,7 @@ const Page = async (props: {
             cloud ? "" : "gap-6"
           )}
         >
-          <div className="w-full">
-            <Text as="p" headingH2 text05>
-              {cloud ? "Complete your sign up" : "Create account"}
-            </Text>
-            <Text as="p" text03>
-              Get started with Onyx
-            </Text>
-          </div>
+          {/* Header removed, now handled by AuthFlowContainer */}
           {cloud && authUrl && (
             <div className="w-full justify-center mt-6">
               <SignInButton authorizeUrl={authUrl} authType={AuthType.CLOUD} />

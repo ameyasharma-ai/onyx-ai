@@ -5,6 +5,7 @@ import { LiveSessionClient } from "@/lib/voice/LiveSessionClient";
 import { Mic, MicOff, Volume2, VolumeX, X, Settings, ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { mutate } from "swr";
 
 export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string, onClose?: () => void }) => {
   const router = useRouter();
@@ -13,6 +14,7 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
   const [transcript, setTranscript] = useState<string>("");
   const orbRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
+  const [createdChatId, setCreatedChatId] = useState<string | null>(null);
 
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
@@ -41,7 +43,15 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
       }
     };
 
-    const newClient = new LiveSessionClient(onStateChange, onTranscript, onAmplitude, chatSessionId);
+    const onChatSessionId = (id: string) => {
+      setCreatedChatId(id);
+      // Update the URL behind the scenes so the UI is refreshed on close
+      router.replace(`/app?chatId=${id}`);
+      // Force Next.js to re-fetch Server Components (like the sidebar) so it appears immediately
+      router.refresh();
+    };
+
+    const newClient = new LiveSessionClient(onStateChange, onTranscript, onAmplitude, onChatSessionId, chatSessionId);
     setClient(newClient);
 
     return () => {
@@ -96,10 +106,27 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
         <button 
           onClick={() => {
             handleDisconnect();
+            if (createdChatId) {
+              if (onClose) onClose();
+              setTimeout(() => {
+                window.location.assign(`/app?chatId=${createdChatId}`);
+              }, 750);
+              return;
+            } else if (chatSessionId) {
+              if (onClose) onClose();
+              setTimeout(() => {
+                if (window.location.href.includes(chatSessionId)) {
+                  window.location.reload();
+                } else {
+                  window.location.assign(`/app?chatId=${chatSessionId}`);
+                }
+              }, 750);
+              return;
+            }
             if (onClose) {
               onClose();
             } else {
-              router.push('/chat');
+              router.push('/app');
             }
           }}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition-all"
@@ -226,6 +253,7 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
           </div>
         )}
       </div>
+      
     </div>,
     document.body
   );

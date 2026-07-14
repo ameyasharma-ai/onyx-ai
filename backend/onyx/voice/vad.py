@@ -18,9 +18,9 @@ class VoiceActivityDetector:
 
     def __init__(
         self,
-        energy_threshold: float = 300.0,
-        silence_timeout_s: float = 1.0,
-        min_speech_duration_s: float = 0.2,
+        energy_threshold: float = 1500.0,
+        silence_timeout_s: float = 0.7,
+        min_speech_duration_s: float = 0.1,
     ):
         self.energy_threshold = energy_threshold
         self.silence_timeout_s = silence_timeout_s
@@ -61,11 +61,17 @@ class VoiceActivityDetector:
         sum_squares = sum(float(s) * float(s) for s in samples)
         rms = math.sqrt(sum_squares / count) if count > 0 else 0
 
+        # Calculate Zero-Crossing Rate (ZCR) to filter out non-speech noises
+        # e.g., low-frequency traffic rumble or high-frequency bird chirps
+        zero_crossings = sum(1 for i in range(1, count) if (samples[i-1] >= 0) != (samples[i] >= 0))
+        zcr = zero_crossings / count if count > 0 else 0
+        is_valid_zcr = 0.01 <= zcr <= 0.50
+
         now = time.time()
         is_transition = False
 
-        if rms > self.energy_threshold:
-            # We detect audio energy
+        if rms > self.energy_threshold and is_valid_zcr:
+            # We detect audio energy with a speech-like frequency profile
             self.last_speech_time = now
             if self.current_state == VadState.SILENCE:
                 if self.speech_start_time == 0.0:

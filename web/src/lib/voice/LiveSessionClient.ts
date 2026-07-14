@@ -16,6 +16,7 @@ export class LiveSessionClient {
   private onStateChange: StateCallback | null = null;
   private onTranscript: TranscriptCallback | null = null;
   private onAmplitude: AmplitudeCallback | null = null;
+  private onChatSessionId: ((id: string) => void) | null = null;
   private chatSessionId?: string;
 
   // For playback
@@ -28,11 +29,13 @@ export class LiveSessionClient {
     onStateChange: StateCallback,
     onTranscript: TranscriptCallback,
     onAmplitude: AmplitudeCallback,
+    onChatSessionId: (id: string) => void,
     chatSessionId?: string
   ) {
     this.onStateChange = onStateChange;
     this.onTranscript = onTranscript;
     this.onAmplitude = onAmplitude;
+    this.onChatSessionId = onChatSessionId;
     this.chatSessionId = chatSessionId;
   }
 
@@ -75,9 +78,17 @@ export class LiveSessionClient {
           if (this.onTranscript) this.onTranscript(msg.text, true);
         } else if (msg.type === "interrupt") {
           this.stopPlayback();
+        } else if (msg.type === "chat_session_id") {
+          if (this.onChatSessionId) this.onChatSessionId(msg.chat_session_id);
         }
       } else {
         // Binary audio chunk (synthesized speech)
+        // If we've interrupted locally, backendState will be "listening".
+        // Drop any inflight trailing audio chunks to prevent ghost playback!
+        if (this.backendState !== "speaking") {
+          return;
+        }
+        
         this.playQueue.push(event.data);
         this.updateDerivedState();
         this.processPlayQueue();
@@ -116,6 +127,16 @@ export class LiveSessionClient {
       this.workletNode.port.onmessage = (e) => {
         const { buffer, rms } = e.data;
         if (this.onAmplitude) this.onAmplitude(rms);
+        
+        // Instant client-side interrupt if user speaks loudly while assistant is speaking
+        if (this.currentState === "speaking" && rms > 1500) {
+          this.stopPlayback();
+          this.setState("listening");
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({ action: "stop" }));
+          }
+        }
+
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
           this.ws.send(buffer);
         }

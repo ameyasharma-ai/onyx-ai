@@ -6,7 +6,7 @@ import { Text } from "@opal/components";
 import { Spacer } from "@opal/components";
 import { RequestNewVerificationEmail } from "../waiting-on-verification/RequestNewVerificationEmail";
 import { User } from "@/lib/types";
-import { Logo } from "@/lib/app/components";
+import AuthFlowContainer from "@/components/auth/AuthFlowContainer";
 import { NEXT_PUBLIC_CLOUD_ENABLED } from "@/lib/constants";
 
 export interface VerifyProps {
@@ -62,24 +62,22 @@ export default function Verify({ user }: VerifyProps) {
   }, [verify]);
 
   return (
-    <main>
-      <div className="min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <Logo folded size={64} className="mx-auto w-fit animate-pulse" />
+    <AuthFlowContainer>
+      <div className="flex flex-col items-center justify-center p-8">
         {!error ? (
           <>
             <Spacer rem={0.5} />
-            <Text as="p">Verifying your email...</Text>
+            <p className="text-gray-300">Verifying your email...</p>
           </>
         ) : (
-          <div>
+          <div className="text-center">
             <Spacer rem={0.5} />
-            <Text as="p">{error}</Text>
+            <p className="text-red-400">{error}</p>
 
             {user && (
-              <div className="text-center">
+              <div className="mt-4">
                 <RequestNewVerificationEmail email={user.email}>
-                  {/* TODO(@raunakab): migrate to @opal/components Text */}
-                  <p className="text-sm mt-2 text-link">
+                  <p className="text-sm mt-2 text-indigo-400 hover:text-indigo-300 cursor-pointer transition-colors duration-200">
                     Get new verification email
                   </p>
                 </RequestNewVerificationEmail>
@@ -88,6 +86,6 @@ export default function Verify({ user }: VerifyProps) {
           </div>
         )}
       </div>
-    </main>
+    </AuthFlowContainer>
   );
 }

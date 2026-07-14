@@ -155,12 +155,15 @@ class VoiceSessionManager:
                                     self.current_tts_task.cancel()
                                     
                                 self.current_tts_task = asyncio.create_task(self._run_llm_and_tts(final_text))
+                            else:
+                                await self.websocket.send_json({"type": "state", "state": "idle"})
                                 
                 elif "text" in message:
                     data = json.loads(message["text"])
                     if data.get("action") == "stop":
                         if self.current_tts_task:
                             self.current_tts_task.cancel()
+                        # Removed forced VAD state change; let the audio naturally trigger it.
                     elif data.get("action") == "settings":
                         self.disable_thinking = data.get("disable_thinking", False)
                         logger.info(f"Live voice settings updated: disable_thinking={self.disable_thinking}")
@@ -210,12 +213,30 @@ class VoiceSessionManager:
         
         answer_stream = handle_stream_message_objects(new_msg_req=req, user=self.user)
         
+        loop = asyncio.get_running_loop()
+        def _stream_interceptor(stream):
+            from onyx.chat.models import CreateChatSessionID
+            for part in stream:
+                if isinstance(part, CreateChatSessionID):
+                    self.valid_chat_id = part.chat_session_id
+                    logger.info(f"Live session mapped to new chat session ID: {self.valid_chat_id}")
+                    
+                    async def _send_chat_id():
+                        try:
+                            await self.websocket.send_json({"type": "chat_session_id", "chat_session_id": str(self.valid_chat_id)})
+                        except Exception as e:
+                            logger.error(f"Failed to send chat_session_id: {e}")
+                    asyncio.run_coroutine_threadsafe(_send_chat_id(), loop)
+                yield part
+                
+        intercepted_stream = _stream_interceptor(answer_stream)
+        
         try:
             voice = self.tts_db.default_voice
             speed = 1.0 
             
             audio_stream = pipeline_llm_to_tts(
-                answer_stream=answer_stream,
+                answer_stream=intercepted_stream,
                 synthesizer_func=self.tts_provider.synthesize_stream,
                 voice=voice,
                 speed=speed

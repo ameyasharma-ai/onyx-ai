@@ -43,8 +43,8 @@ const ResetPasswordPage: React.FC = () => {
   return (
     <AuthFlowContainer>
       <div className="flex flex-col w-full justify-center">
-        <div className="flex">
-          <Title className="mb-2 mx-auto font-bold">Reset Password</Title>
+        <div className="flex w-full mb-4">
+          <p className="text-gray-400 text-center w-full">Please enter your new password below.</p>
         </div>
         {isWorking && <Spinner />}
         <Formik
@@ -100,11 +100,13 @@ const ResetPasswordPage: React.FC = () => {
                 placeholder="Confirm your new password"
               />
 
-              <div className="flex">
-                <Button disabled={isSubmitting} type="submit" width="full">
+                <button 
+                  disabled={isSubmitting} 
+                  type="submit" 
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-400 text-white font-medium rounded-xl transition-all duration-200 shadow-md shadow-indigo-900/20"
+                >
                   Reset Password
-                </Button>
-              </div>
+                </button>
             </Form>
           )}
         </Formik>

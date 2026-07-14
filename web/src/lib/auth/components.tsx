@@ -171,16 +171,13 @@ export function SignInButton({ authorizeUrl, authType }: SignInButtonProps) {
     (authType === AuthType.GOOGLE_OAUTH || authType === AuthType.CLOUD);
 
   return (
-    <Button
-      prominence="secondary"
-      width="full"
-      icon={icon}
-      href={intercepted ? undefined : authorizeUrl}
-      onClick={intercepted ? handleClick : undefined}
+    <button
+      onClick={intercepted ? handleClick : () => window.location.href = authorizeUrl}
       disabled={isVerifying}
+      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#18181b] hover:bg-[#27272a] disabled:bg-[#18181b]/50 disabled:text-gray-500 text-white font-medium rounded-xl border border-white/10 transition-all duration-200"
     >
       {button}
-    </Button>
+    </button>
   );
 }
 

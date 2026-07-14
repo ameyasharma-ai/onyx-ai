@@ -61,15 +61,14 @@ export default function ProviderSignInButton({
 
   return (
     <>
-      <Button
-        prominence={isGoogle ? "secondary" : "primary"}
-        width="full"
-        icon={isGoogle ? FcGoogle : undefined}
+      <button
         onClick={handleClick}
         disabled={isRedirecting}
+        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#18181b] hover:bg-[#27272a] disabled:bg-[#18181b]/50 disabled:text-gray-500 text-white font-medium rounded-xl border border-white/10 transition-all duration-200"
       >
+        {isGoogle ? <FcGoogle className="w-5 h-5" /> : null}
         {provider.displayName}
-      </Button>
+      </button>
       {error && (
         <Text as="p" mainUiMuted className="text-status-error-05 mt-2">
           {error}
