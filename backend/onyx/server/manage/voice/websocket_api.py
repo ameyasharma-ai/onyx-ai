@@ -30,6 +30,9 @@ logger = setup_logger()
 
 router = APIRouter(prefix="/voice")
 
+# Provider types that do not require an API key (local servers).
+KEYLESS_PROVIDER_TYPES: frozenset[str] = frozenset({"whisper_cpp", "kokoro"})
+
 
 # Byte threshold for non-PCM formats, where the audio can't be analyzed server-side
 MIN_CHUNK_BYTES = 1500
@@ -520,7 +523,7 @@ async def websocket_transcribe(
                 )
                 return
 
-            if not provider_db.api_key:
+            if not provider_db.api_key and provider_db.provider_type.lower() not in KEYLESS_PROVIDER_TYPES:
                 logger.warning("WebSocket transcribe: STT provider has no API key")
                 await websocket.send_json(
                     {
@@ -919,7 +922,7 @@ async def websocket_synthesize(
                 )
                 return
 
-            if not provider_db.api_key:
+            if not provider_db.api_key and provider_db.provider_type.lower() not in KEYLESS_PROVIDER_TYPES:
                 logger.warning("WebSocket synthesize: TTS provider has no API key")
                 await websocket.send_json(
                     {

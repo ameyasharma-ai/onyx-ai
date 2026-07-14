@@ -55,6 +55,12 @@ const STT_MODELS: ModelDetails[] = [
     subtitle: "ElevenLabs Speech to Text API.",
     providerType: "elevenlabs",
   },
+  {
+    id: "whisper-cpp",
+    label: "Whisper.cpp",
+    subtitle: "Local speech recognition via Whisper.cpp server.",
+    providerType: "whisper_cpp",
+  },
 ];
 
 // TTS Models - grouped by provider
@@ -98,6 +104,18 @@ const TTS_PROVIDER_GROUPS: ProviderGroup[] = [
         label: "ElevenAPI",
         subtitle: "ElevenLabs Text to Speech API.",
         providerType: "elevenlabs",
+      },
+    ],
+  },
+  {
+    providerType: "kokoro",
+    providerLabel: "Kokoro ONNX",
+    models: [
+      {
+        id: "kokoro",
+        label: "Kokoro ONNX",
+        subtitle: "Local text-to-speech via Kokoro ONNX server.",
+        providerType: "kokoro",
       },
     ],
   },
@@ -213,8 +231,12 @@ export default function VoicePage() {
     model: ModelDetails,
     mode: ProviderMode
   ): "disconnected" | "connected" | "selected" => {
+    const KEYLESS_TYPES = new Set(["whisper_cpp", "kokoro"]);
     const provider = providersByType.get(model.providerType);
-    if (!provider || !provider.api_key) return "disconnected";
+    if (!provider) return "disconnected";
+    // Keyless providers are connected if they exist; key-based require api_key.
+    if (!KEYLESS_TYPES.has(model.providerType) && !provider.api_key)
+      return "disconnected";
 
     const isActive =
       mode === "stt"

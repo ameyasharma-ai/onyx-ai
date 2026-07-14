@@ -32,6 +32,9 @@ logger = setup_logger()
 
 router = APIRouter(prefix="/voice")
 
+# Provider types that do not require an API key (local servers).
+KEYLESS_PROVIDER_TYPES: frozenset[str] = frozenset({"whisper_cpp", "kokoro"})
+
 # Max audio file size: 25MB (Whisper limit)
 MAX_AUDIO_SIZE = 25 * 1024 * 1024
 # Chunk size for streaming uploads (8KB)
@@ -51,9 +54,17 @@ def get_voice_status(
     """Check whether STT and TTS providers are configured and ready."""
     stt_provider = fetch_default_stt_provider(db_session)
     tts_provider = fetch_default_tts_provider(db_session)
+    stt_enabled = stt_provider is not None and (
+        stt_provider.api_key is not None
+        or stt_provider.provider_type.lower() in KEYLESS_PROVIDER_TYPES
+    )
+    tts_enabled = tts_provider is not None and (
+        tts_provider.api_key is not None
+        or tts_provider.provider_type.lower() in KEYLESS_PROVIDER_TYPES
+    )
     return VoiceStatusResponse(
-        stt_enabled=stt_provider is not None and stt_provider.api_key is not None,
-        tts_enabled=tts_provider is not None and tts_provider.api_key is not None,
+        stt_enabled=stt_enabled,
+        tts_enabled=tts_enabled,
     )
 
 
@@ -71,7 +82,7 @@ async def transcribe_audio(
             "No speech-to-text provider configured. Please contact your administrator.",
         )
 
-    if not provider_db.api_key:
+    if not provider_db.api_key and provider_db.provider_type.lower() not in KEYLESS_PROVIDER_TYPES:
         raise OnyxError(
             OnyxErrorCode.VALIDATION_ERROR,
             "Voice provider API key not configured.",
@@ -170,7 +181,7 @@ async def synthesize_speech(
                 "No text-to-speech provider configured. Please contact your administrator.",
             )
 
-        if not provider_db.api_key:
+        if not provider_db.api_key and provider_db.provider_type.lower() not in KEYLESS_PROVIDER_TYPES:
             logger.error("TTS provider has no API key")
             raise OnyxError(
                 OnyxErrorCode.VALIDATION_ERROR,

@@ -548,6 +548,47 @@ services:
   #       max-file: "6"
   #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
+  whisper_cpp_init:
+    image: alpine:latest
+    restart: "no"
+    command: >
+      /bin/sh -c "
+      if [ ! -f /models/ggml-base.en.bin ]; then
+        apk add --no-cache wget &&
+        wget -qO /models/ggml-base.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
+      fi
+      "
+    volumes:
+      - whisper_models:/models
+
+  whisper_cpp:
+    image: ghcr.io/ggml-org/whisper.cpp:main
+    restart: unless-stopped
+    depends_on:
+      whisper_cpp_init:
+        condition: service_completed_successfully
+    entrypoint: ["build/bin/whisper-server", "-m", "/models/ggml-base.en.bin", "--host", "0.0.0.0", "--port", "8080"]
+    volumes:
+      - whisper_models:/models
+    ports:
+      - "8081:8080" # Avoid collision with api_server on host
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "6"
+
+  kokoro:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    restart: unless-stopped
+    ports:
+      - "8880:8880"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "6"
+
 volumes:
   # Necessary for persisting data for use
   db_volume:
@@ -565,3 +606,5 @@ volumes:
   file-system:
   # Persistent data for OpenSearch.
   opensearch-data:
+  # Whisper.cpp models
+  whisper_models:

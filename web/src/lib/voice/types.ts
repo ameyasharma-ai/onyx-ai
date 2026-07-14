@@ -24,6 +24,7 @@ export interface VoiceOption {
 export interface VoiceFormValues {
   api_key: string;
   target_uri: string;
+  server_url: string;
   stt_model: string;
   tts_model: string;
   default_voice: string;

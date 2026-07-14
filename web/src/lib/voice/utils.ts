@@ -83,6 +83,22 @@ export const VOICE_PROVIDER_DETAILS: Record<string, VoiceProviderDetail> = {
       label: "ElevenLabs",
     },
   },
+  whisper_cpp: {
+    label: "Whisper.cpp",
+    icon: SvgMicrophone,
+    docsUrl: "https://github.com/ggerganov/whisper.cpp",
+    sttModels: [{ id: "default", name: "Server Default" }],
+  },
+  kokoro: {
+    label: "Kokoro ONNX",
+    icon: SvgMicrophone,
+    docsUrl: "https://github.com/remsky/Kokoro-FastAPI",
+    voiceDocsUrl: {
+      url: "https://github.com/remsky/Kokoro-FastAPI",
+      label: "Kokoro",
+    },
+    ttsModels: [{ id: "kokoro", name: "Kokoro ONNX" }],
+  },
 };
 
 /** Returns the detail entry for a provider type, falling back to a generic entry for unknown types. */

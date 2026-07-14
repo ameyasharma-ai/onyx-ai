@@ -35,6 +35,9 @@ logger = setup_logger()
 
 admin_router = APIRouter(prefix="/admin/voice")
 
+# Provider types that do not require an API key (local servers).
+KEYLESS_PROVIDER_TYPES: frozenset[str] = frozenset({"whisper_cpp", "kokoro"})
+
 VOICE_PROVIDER_VALIDATION_FAILURE_MESSAGE = (
     "Connection test failed. Please verify your API key and settings."
 )
@@ -45,7 +48,10 @@ def _validate_voice_api_base(provider_type: str, api_base: str | None) -> str | 
     if api_base is None:
         return None
 
-    allow_private_network = provider_type.lower() == "azure"
+    # Azure and local providers (whisper_cpp, kokoro) need private-network access.
+    allow_private_network = (
+        provider_type.lower() in {"azure"} | KEYLESS_PROVIDER_TYPES
+    )
     try:
         return validate_outbound_http_url(
             api_base, allow_private_network=allow_private_network
@@ -223,6 +229,7 @@ async def test_voice_provider(
     db_session: Session = Depends(get_session),
 ) -> VoiceProviderUpdateSuccess:
     """Test a voice provider connection by making a real API call."""
+    is_keyless = request.provider_type.lower() in KEYLESS_PROVIDER_TYPES
     api_key = request.api_key
 
     if request.use_stored_key:
@@ -236,7 +243,7 @@ async def test_voice_provider(
             )
         api_key = existing_provider.api_key.get_value(apply_mask=False)
 
-    if not api_key:
+    if not api_key and not is_keyless:
         raise OnyxError(
             OnyxErrorCode.VALIDATION_ERROR,
             "API key is required. Either provide api_key or set use_stored_key to true.",
@@ -288,7 +295,8 @@ def get_provider_voices(
     if provider_db is None:
         raise OnyxError(OnyxErrorCode.NOT_FOUND, "Voice provider not found.")
 
-    if not provider_db.api_key:
+    is_keyless = provider_db.provider_type.lower() in KEYLESS_PROVIDER_TYPES
+    if not provider_db.api_key and not is_keyless:
         raise OnyxError(
             OnyxErrorCode.VALIDATION_ERROR, "Provider has no API key configured."
         )

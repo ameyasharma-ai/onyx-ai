@@ -66,5 +66,22 @@ def get_voice_provider(provider: VoiceProvider) -> VoiceProviderInterface:
             default_voice=default_voice,
         )
 
+    elif provider_type == "whisper_cpp":
+        from onyx.voice.providers.whisper_cpp import WhisperCppProvider
+
+        return WhisperCppProvider(
+            api_base=api_base,
+            stt_model=stt_model,
+        )
+
+    elif provider_type == "kokoro":
+        from onyx.voice.providers.kokoro import KokoroProvider
+
+        return KokoroProvider(
+            api_base=api_base,
+            default_voice=default_voice,
+            custom_config=custom_config or {},
+        )
+
     else:
         raise ValueError(f"Unsupported voice provider type: {provider_type}")

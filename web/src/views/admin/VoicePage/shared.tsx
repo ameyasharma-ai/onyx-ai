@@ -63,6 +63,7 @@ export function VoiceProviderSetupModal({
     : (existingProvider?.tts_model ?? "tts-1");
 
   const isEditing = !!existingProvider;
+  const isKeyless = providerType === "whisper_cpp" || providerType === "kokoro";
 
   // Non-form state: dynamic voice options
   const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>([]);
@@ -95,19 +96,32 @@ export function VoiceProviderSetupModal({
   }, [providerType]);
 
   const validationSchema = Yup.object().shape({
-    api_key: Yup.string().required("API key is required"),
+    api_key: isKeyless
+      ? Yup.string()
+      : Yup.string().required("API key is required"),
     target_uri:
       providerType === "azure"
         ? Yup.string().required("Target URI is required")
         : Yup.string(),
+    server_url: isKeyless
+      ? Yup.string().required("Server URL is required")
+      : Yup.string(),
     stt_model: Yup.string(),
     tts_model: Yup.string(),
     default_voice: Yup.string(),
   });
 
+  const defaultServerUrl =
+    providerType === "whisper_cpp"
+      ? "http://localhost:8080"
+      : providerType === "kokoro"
+        ? "http://localhost:8880"
+        : "";
+
   const initialValues: VoiceFormValues = {
     api_key: existingProvider?.api_key ?? "",
     target_uri: existingProvider?.target_uri ?? "",
+    server_url: existingProvider?.target_uri ?? defaultServerUrl,
     stt_model: existingProvider?.stt_model ?? "whisper-1",
     tts_model: initialTtsModel,
     default_voice: initialDefaultVoice,
@@ -121,7 +135,25 @@ export function VoiceProviderSetupModal({
     const shouldUseStoredKey = !apiKeyChanged && !!existingProvider?.api_key;
 
     try {
-      if (!shouldUseStoredKey) {
+      // For keyless providers, test connectivity using server_url as api_base.
+      if (isKeyless) {
+        const testResponse = await testVoiceProvider({
+          provider_type: providerType,
+          api_key: undefined,
+          target_uri: values.server_url || undefined,
+        });
+
+        if (!testResponse.ok) {
+          const data = await testResponse.json().catch(() => ({}));
+          toast.error(
+            typeof data?.detail === "string"
+              ? data.detail
+              : "Connection test failed. Verify the server is running."
+          );
+          setSubmitting(false);
+          return;
+        }
+      } else if (!shouldUseStoredKey) {
         const testResponse = await testVoiceProvider({
           provider_type: providerType,
           api_key: apiKeyChanged ? values.api_key : undefined,
@@ -145,9 +177,13 @@ export function VoiceProviderSetupModal({
         id: existingProvider?.id,
         name: detail.label,
         provider_type: providerType,
-        api_key: apiKeyChanged ? values.api_key : undefined,
-        api_key_changed: apiKeyChanged,
-        target_uri: values.target_uri || undefined,
+        api_key: isKeyless ? undefined : apiKeyChanged ? values.api_key : undefined,
+        api_key_changed: isKeyless ? false : apiKeyChanged,
+        // For keyless providers, send server_url as api_base; for Azure, use target_uri.
+        target_uri: isKeyless
+          ? values.server_url || undefined
+          : values.target_uri || undefined,
+        api_base: isKeyless ? values.server_url || undefined : undefined,
         stt_model: values.stt_model,
         tts_model: values.tts_model,
         default_voice: values.default_voice,
@@ -196,11 +232,30 @@ export function VoiceProviderSetupModal({
                     ? `Configure ${detail.label}`
                     : `Set up ${detail.label}`
                 }
-                description={`Connect to ${detail.label} and set up your voice models.`}
+                description={
+                  isKeyless
+                    ? `Connect to your local ${detail.label} server.`
+                    : `Connect to ${detail.label} and set up your voice models.`
+                }
                 onClose={onClose}
               />
               <Modal.Body>
                 <Section gap={1} alignItems="stretch">
+                  {isKeyless && (
+                    <InputVertical
+                      title="Server URL"
+                      subDescription={markdown(
+                        `The URL where your [${detail.label}](${detail.docsUrl}) server is running.`
+                      )}
+                      withLabel="server_url"
+                    >
+                      <InputTypeInField
+                        name="server_url"
+                        placeholder={defaultServerUrl}
+                      />
+                    </InputVertical>
+                  )}
+
                   {providerType === "azure" && (
                     <InputVertical
                       title="Target URI"
@@ -216,18 +271,20 @@ export function VoiceProviderSetupModal({
                     </InputVertical>
                   )}
 
-                  <InputVertical
-                    title="API Key"
-                    subDescription={markdown(
-                      `Paste your [API key](${detail.apiKeyUrl}) from ${detail.label} to access your models.`
-                    )}
-                    withLabel="api_key"
-                  >
-                    <PasswordInputTypeInField
-                      name="api_key"
-                      placeholder="API key"
-                    />
-                  </InputVertical>
+                  {!isKeyless && (
+                    <InputVertical
+                      title="API Key"
+                      subDescription={markdown(
+                        `Paste your [API key](${detail.apiKeyUrl}) from ${detail.label} to access your models.`
+                      )}
+                      withLabel="api_key"
+                    >
+                      <PasswordInputTypeInField
+                        name="api_key"
+                        placeholder="API key"
+                      />
+                    </InputVertical>
+                  )}
 
                   {mode === "stt" && (detail.sttModels?.length ?? 0) > 1 && (
                     <InputVertical title="STT Model" withLabel="stt_model">
