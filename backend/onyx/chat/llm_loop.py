@@ -789,20 +789,15 @@ def run_llm_loop(
                         should_cite_documents=should_cite_documents
                         or always_cite_documents,
                     )
+                    if custom_agent_prompt:
+                        system_prompt_str = custom_agent_prompt + "\n\n" + system_prompt_str
+
                     system_prompt = ChatMessageSimple(
                         message=system_prompt_str,
                         token_count=token_counter(system_prompt_str),
                         message_type=MessageType.SYSTEM,
                     )
-                    custom_agent_prompt_msg = (
-                        ChatMessageSimple(
-                            message=custom_agent_prompt,
-                            token_count=token_counter(custom_agent_prompt),
-                            message_type=MessageType.USER,
-                        )
-                        if custom_agent_prompt
-                        else None
-                    )
+                    custom_agent_prompt_msg = None
                 else:
                     # If there is a custom agent prompt, it replaces the system prompt when the default system prompt is empty
                     system_prompt = (

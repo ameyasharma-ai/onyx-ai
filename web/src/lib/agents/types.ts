@@ -78,6 +78,19 @@ export interface MinimalAgent {
   owner_group: PersonaOwnerGroup | null;
   // Requesting user's computed access, set by the list/detail endpoints
   user_permission: PersonaAccessLevel | null;
+
+  // PersonaLabs Extensions
+  slug?: string | null;
+  long_description?: string | null;
+  banner_image_id?: string | null;
+  voice_id?: string | null;
+  temperature?: number | null;
+  category?: string | null;
+  tags?: string[] | null;
+  rating_average?: number;
+  rating_count?: number;
+  favorite_count?: number;
+  chat_count?: number;
 }
 
 export interface Agent extends MinimalAgent {
@@ -129,6 +142,15 @@ export interface AgentUpsertParameters {
   user_file_ids: string[];
   hierarchy_node_ids?: number[];
   document_ids?: string[];
+
+  // PersonaLabs Extensions
+  slug?: string | null;
+  long_description?: string | null;
+  banner_image_id?: string | null;
+  voice_id?: string | null;
+  temperature?: number | null;
+  category?: string | null;
+  tags?: string[] | null;
 }
 
 export interface AgentUpsertRequest {
@@ -155,6 +177,15 @@ export interface AgentUpsertRequest {
   replace_base_system_prompt: boolean;
   hierarchy_node_ids: number[];
   document_ids: string[];
+
+  // PersonaLabs Extensions
+  slug?: string | null;
+  long_description?: string | null;
+  banner_image_id?: string | null;
+  voice_id?: string | null;
+  temperature?: number | null;
+  category?: string | null;
+  tags?: string[] | null;
 }
 
 export interface PaginatedAgentsResponse {

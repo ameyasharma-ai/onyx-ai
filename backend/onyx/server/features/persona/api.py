@@ -25,6 +25,7 @@ from onyx.db.engine.sql_engine import get_session
 from onyx.db.enums import Permission
 from onyx.db.enums import PersonaSharePermission
 from onyx.db.file_record import get_filerecord_by_file_id_optional
+from onyx.db.models import Persona
 from onyx.db.models import User
 from onyx.db.persona import create_assistant_label
 from onyx.db.persona import create_update_persona
@@ -49,6 +50,10 @@ from onyx.db.persona_sharing import get_persona_access_level
 from onyx.db.persona_sharing import get_user_group_ids_for_user
 from onyx.db.persona_sharing import persona_ownership_is_vacant
 from onyx.db.users import get_active_admin_count
+from onyx.db.persona import get_explore_personas_paginated
+from onyx.db.persona import toggle_persona_favorite
+from onyx.db.persona import rate_persona
+from typing import Any
 from onyx.error_handling.error_codes import OnyxErrorCode
 from onyx.error_handling.exceptions import OnyxError
 from onyx.file_store.file_store import get_default_file_store
@@ -618,6 +623,58 @@ def get_agents_paginated(
     )
 
 
+@basic_router.get("/explore")
+def explore_personas(
+    query: str | None = None,
+    category: str | None = None,
+    sort_by: str = "rating",
+    page_num: int = 0,
+    page_size: int = 20,
+    user: User | None = Depends(current_chat_accessible_user),
+    db_session: Session = Depends(get_session),
+) -> PaginatedReturn[MinimalPersonaSnapshot]:
+    personas, total = get_explore_personas_paginated(
+        user=user,
+        db_session=db_session,
+        query=query,
+        category=category,
+        sort_by=sort_by,
+        page_num=page_num,
+        page_size=page_size,
+    )
+    user_group_ids: set[int] = (
+        get_user_group_ids_for_user(db_session, user.id) if user is not None else set()
+    )
+
+    def _snapshot(p: Persona) -> MinimalPersonaSnapshot:
+        permission = (
+            get_persona_access_level(p, user, user_group_ids)
+            if user is not None
+            else None
+        )
+        return MinimalPersonaSnapshot.from_model(p, user_permission=permission)
+
+    return PaginatedReturn(
+        items=[_snapshot(p) for p in personas],
+        total_items=total,
+    )
+
+
+@basic_router.get("/categories")
+def get_categories(
+    _: User | None = Depends(current_chat_accessible_user),
+    db_session: Session = Depends(get_session),
+) -> list[str]:
+    from sqlalchemy import select
+    from onyx.db.models import Persona
+    stmt = select(Persona.category).where(
+        Persona.category.is_not(None), 
+        Persona.deleted == False
+    ).distinct()
+    categories = db_session.scalars(stmt).all()
+    return sorted(list(categories))
+
+
 @basic_router.get("/{persona_id}", tags=PUBLIC_API_TAGS)
 def get_persona(
     persona_id: int,
@@ -712,3 +769,27 @@ def get_persona_avatar(
     return StreamingResponse(
         file_io, media_type=file_record.file_type, headers=cache_headers
     )
+
+class RatingRequest(BaseModel):
+    rating: int
+
+@basic_router.post("/{persona_id}/rate")
+def rate_persona_endpoint(
+    persona_id: int,
+    request: RatingRequest,
+    user: User = Depends(current_chat_accessible_user),
+    db_session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    if request.rating < 1 or request.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+    rate_persona(db_session, persona_id, user.id, request.rating)
+    return {"success": True}
+
+@basic_router.post("/{persona_id}/favorite")
+def favorite_persona_endpoint(
+    persona_id: int,
+    user: User = Depends(current_chat_accessible_user),
+    db_session: Session = Depends(get_session),
+) -> dict[str, bool]:
+    is_favorited = toggle_persona_favorite(db_session, persona_id, user.id)
+    return {"favorited": is_favorited}

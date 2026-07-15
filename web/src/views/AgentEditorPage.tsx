@@ -556,7 +556,7 @@ export default function AgentEditorPage({
   // current form state rather than a stale snapshot from when the upload began.
   const userFileIdsRef = useRef<string[]>([]);
 
-  // Labels are edited in the Share Agent section and saved with the form
+  // Labels are edited in the Share Persona section and saved with the form
   const { labels: allLabels, createLabel } = useLabels();
   const [labelInputValue, setLabelInputValue] = useState("");
   const addAgentLabel = useCallback(
@@ -925,7 +925,7 @@ export default function AgentEditorPage({
         document_set_ids: values.enable_knowledge
           ? values.document_set_ids
           : [],
-        // Sharing on saved agents is managed by the share dialog — omitting
+        // Sharing on saved personas is managed by the share dialog — omitting
         // the fields here keeps form saves from clobbering it. Creates carry
         // the draft share state captured before the agent existed.
         ...(existingAgent
@@ -1028,7 +1028,7 @@ export default function AgentEditorPage({
     }
   }
 
-  // Delete agent handler
+  // Delete Persona handler
   async function handleDeleteAgent() {
     if (!existingAgent) return;
 
@@ -1039,9 +1039,9 @@ export default function AgentEditorPage({
       await refreshAgents();
       router.push("/app/agents");
     } catch (e) {
-      console.error("Delete agent error:", e);
+      console.error("Delete Persona error:", e);
       toast.error(
-        `Failed to delete agent: ${
+        `Failed to Delete Persona: ${
           e instanceof Error ? e.message : "Unknown error"
         }`
       );
@@ -1182,7 +1182,7 @@ export default function AgentEditorPage({
               (fileId: string) =>
                 fileStatusMap.get(fileId) === UserFileStatus.PROCESSING
             );
-            // Saved agents report their status (group ownership counts as
+            // saved personas report their status (group ownership counts as
             // shared); unsaved ones derive it from the draft form state.
             const sharingStatus: PersonaSharingStatus = existingAgent
               ? existingAgent.sharing_status
@@ -1256,7 +1256,7 @@ export default function AgentEditorPage({
                     agentId={existingAgent?.id}
                     draftShares={values.shared_draft}
                     onDraftSave={(draft) => {
-                      // Saved agents persist sharing inside the dialog; the
+                      // saved personas persist sharing inside the dialog; the
                       // draft only exists for agents not yet created and is
                       // applied via the share endpoint right after create.
                       setFieldValue("shared_draft", draft);
@@ -1277,20 +1277,20 @@ export default function AgentEditorPage({
                   {deleteAgentModal.isOpen && (
                     <ConfirmationModalLayout
                       icon={SvgTrash}
-                      title="Delete Agent"
+                      title="Delete Persona"
                       submit={
                         <Button variant="danger" onClick={handleDeleteAgent}>
-                          Delete Agent
+                          Delete Persona
                         </Button>
                       }
                       onClose={() => deleteAgentModal.toggle(false)}
                     >
                       <GeneralLayouts.Section alignItems="start" gap={0.5}>
                         <Text>
-                          Anyone using this agent will no longer be able to
+                          Anyone using this persona will no longer be able to
                           access it. Deletion cannot be undone.
                         </Text>
-                        <Text>Are you sure you want to delete this agent?</Text>
+                        <Text>Are you sure you want to delete this persona?</Text>
                       </GeneralLayouts.Section>
                     </ConfirmationModalLayout>
                   )}
@@ -1300,7 +1300,7 @@ export default function AgentEditorPage({
                   <SettingsLayouts.Root>
                     <SettingsLayouts.Header
                       icon={SvgOnyxOctagon}
-                      title={existingAgent ? "Edit Agent" : "Create Agent"}
+                      title={existingAgent ? "Edit Persona" : "Create Persona"}
                       rightChildren={
                         <div className="flex gap-2">
                           <Button
@@ -1361,7 +1361,7 @@ export default function AgentEditorPage({
                           <InputVertical withLabel="name" title="Name">
                             <InputTypeInField
                               name="name"
-                              placeholder="Name your agent"
+                              placeholder="Name your persona"
                             />
                           </InputVertical>
 
@@ -1372,7 +1372,7 @@ export default function AgentEditorPage({
                           >
                             <InputTextAreaField
                               name="description"
-                              placeholder="What does this agent do?"
+                              placeholder="Who is this persona? (e.g. A helpful coding assistant)"
                             />
                           </InputVertical>
                         </GeneralLayouts.Section>
@@ -1380,7 +1380,7 @@ export default function AgentEditorPage({
                         <GeneralLayouts.Section width="fit">
                           <InputVertical
                             withLabel="agent_avatar"
-                            title="Agent Avatar"
+                            title="Persona Avatar"
                           >
                             <AgentIconEditor existingAgent={existingAgent} />
                           </InputVertical>
@@ -1395,9 +1395,9 @@ export default function AgentEditorPage({
                       <GeneralLayouts.Section>
                         <InputVertical
                           withLabel="instructions"
-                          title="Instructions"
+                          title="Personality & Role"
                           suffix="optional"
-                          description="Add instructions to tailor the response for this agent."
+                          description="Define this persona's unique personality, background, and how they should behave."
                         >
                           <InputTextAreaField
                             name="instructions"
@@ -1408,7 +1408,7 @@ export default function AgentEditorPage({
                         <InputVertical
                           withLabel="starter_messages"
                           title="Conversation Starters"
-                          description="Example messages that help users understand what this agent can do and how to interact with it effectively."
+                          description="Example messages that help users understand who this persona is and how to interact with it."
                           suffix="optional"
                         >
                           <AgentStarterMessages />
@@ -1474,14 +1474,14 @@ export default function AgentEditorPage({
                         height="auto"
                       >
                         <Content
-                          title="Share Agent"
+                          title="Share Persona"
                           sizePreset="main-content"
                           variant="section"
                         />
                         <Card border="solid" rounding="lg">
                           <GeneralLayouts.Section>
                             <InputHorizontal
-                              title="Share This Agent"
+                              title="Share This Persona"
                               description="with other users, groups, or everyone in your organization."
                               center
                             >
@@ -1497,21 +1497,21 @@ export default function AgentEditorPage({
                               <>
                                 <InputHorizontal
                                   withLabel="is_featured"
-                                  title="Feature This Agent"
-                                  description="Show this agent at the top of the explore agents list and automatically pin it to the sidebar for new users with access."
+                                  title="Feature This Persona"
+                                  description="Show this persona at the top of the explore personas list and automatically pin it to the sidebar for new users with access."
                                 >
                                   <SwitchField name="is_featured" />
                                 </InputHorizontal>
                                 {values.is_featured &&
                                   sharingStatus === "PRIVATE" && (
-                                    <MessageCard title="This agent is private to you and will only be featured for yourself." />
+                                    <MessageCard title="this persona is private to you and will only be featured for yourself." />
                                   )}
                                 {values.is_featured &&
                                   existingAgent &&
                                   !existingAgent.is_listed && (
                                     <MessageCard
                                       variant="warning"
-                                      title="This agent is unlisted and won't be shown in the featured list."
+                                      title="this persona is unlisted and won't be shown in the featured list."
                                     />
                                   )}
                               </>
@@ -1551,7 +1551,7 @@ export default function AgentEditorPage({
                               />
                               <Text text03 secondaryBody>
                                 Add labels and categories to help people better
-                                discover this agent.
+                                discover this persona.
                               </Text>
                             </GeneralLayouts.Section>
                           </GeneralLayouts.Section>
@@ -1565,8 +1565,8 @@ export default function AgentEditorPage({
 
                       <SimpleCollapsible>
                         <SimpleCollapsible.Header
-                          title="Actions"
-                          description="Tools and capabilities available for this agent to use."
+                          title="Capabilities"
+                          description="Enable tools and skills for this persona."
                         />
                         <SimpleCollapsible.Content>
                           <GeneralLayouts.Section
@@ -1706,8 +1706,8 @@ export default function AgentEditorPage({
 
                       <SimpleCollapsible>
                         <SimpleCollapsible.Header
-                          title="Advanced Options"
-                          description="Fine-tune agent prompts and knowledge."
+                          title="Advanced Settings"
+                          description="Fine-tune prompt injection, reminders, and base model overrides."
                         />
                         <SimpleCollapsible.Content>
                           <GeneralLayouts.Section>
@@ -1768,7 +1768,7 @@ export default function AgentEditorPage({
                               </InputVertical>
                               <Text text03 secondaryBody>
                                 Append a brief reminder to the prompt messages.
-                                Use this to remind the agent if you find that it
+                                Use this to remind the persona if you find that it
                                 tends to forget certain instructions as the chat
                                 progresses. This should be brief and not
                                 interfere with the user messages.
@@ -1791,13 +1791,13 @@ export default function AgentEditorPage({
                                 <InputHorizontal
                                   title={
                                     existingAgent.is_listed
-                                      ? "Unlist This Agent"
-                                      : "Relist This Agent"
+                                      ? "Unlist This Persona"
+                                      : "Relist This Persona"
                                   }
                                   description={
                                     existingAgent.is_listed
-                                      ? "Unlisted agents don't appear in the explore agents list but remain accessible."
-                                      : "Relisted agents appear in the explore agents list again."
+                                      ? "unlisted personas don't appear in the explore personas list but remain accessible."
+                                      : "relisted personas appear in the explore personas list again."
                                   }
                                   center
                                 >
@@ -1812,14 +1812,14 @@ export default function AgentEditorPage({
                                     onClick={handleToggleListed}
                                   >
                                     {existingAgent.is_listed
-                                      ? "Unlist Agent"
-                                      : "Relist Agent"}
+                                      ? "Unlist Persona"
+                                      : "Relist Persona"}
                                   </Button>
                                 </InputHorizontal>
                               )}
                               <InputHorizontal
-                                title="Delete This Agent"
-                                description="Anyone using this agent will no longer be able to access it."
+                                title="delete this persona"
+                                description="Anyone using this persona will no longer be able to access it."
                                 center
                               >
                                 <Button
@@ -1827,7 +1827,7 @@ export default function AgentEditorPage({
                                   prominence="secondary"
                                   onClick={() => deleteAgentModal.toggle(true)}
                                 >
-                                  Delete Agent
+                                  Delete Persona
                                 </Button>
                               </InputHorizontal>
                             </GeneralLayouts.Section>

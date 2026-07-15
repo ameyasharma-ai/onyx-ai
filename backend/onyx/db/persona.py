@@ -1850,3 +1850,108 @@ def user_can_access_persona(
     stmt = select(Persona).where(Persona.id == persona_id, Persona.deleted.is_(False))
     stmt = _add_user_filters(stmt, user, get_editable=get_editable)
     return db_session.scalar(stmt) is not None
+
+
+def get_explore_personas_paginated(
+    user: User | None,
+    db_session: Session,
+    query: str | None,
+    category: str | None,
+    sort_by: str,
+    page_num: int,
+    page_size: int,
+) -> tuple[list[Persona], int]:
+    from sqlalchemy import desc
+    stmt = select(Persona).where(Persona.deleted == False)
+
+    # For now, let's just make exploration only show listed + public or user's own
+    if user and not getattr(user, 'is_anonymous', False):
+        stmt = _add_user_filters(stmt=stmt, user=user, get_editable=False)
+    else:
+        stmt = stmt.where(Persona.is_public == True, Persona.is_listed == True)
+
+    if query:
+        stmt = stmt.where(Persona.name.ilike(f"%{query}%"))
+    if category and category.lower() != "all":
+        stmt = stmt.where(Persona.category == category)
+
+    # Count total matching before pagination
+    total_count = db_session.scalar(
+        select(func.count()).select_from(stmt.subquery())
+    ) or 0
+
+    if sort_by == "rating":
+        stmt = stmt.order_by(desc(Persona.rating_average), Persona.id)
+    elif sort_by == "popular":
+        stmt = stmt.order_by(desc(Persona.chat_count), Persona.id)
+    elif sort_by == "recent":
+        stmt = stmt.order_by(desc(Persona.time_created), Persona.id)
+    else:
+        stmt = stmt.order_by(desc(Persona.rating_average), Persona.id)
+
+    stmt = stmt.limit(page_size).offset(page_num * page_size)
+
+    personas = db_session.scalars(stmt).all()
+    return list(personas), total_count
+
+
+def toggle_persona_favorite(db_session: Session, persona_id: int, user_id: UUID) -> bool:
+    from onyx.db.models import PersonaFavorite
+    existing = db_session.execute(
+        select(PersonaFavorite).where(
+            PersonaFavorite.persona_id == persona_id,
+            PersonaFavorite.user_id == user_id
+        )
+    ).scalar_one_or_none()
+    
+    if existing:
+        db_session.delete(existing)
+        db_session.execute(
+            update(Persona).where(Persona.id == persona_id).values(
+                favorite_count=Persona.favorite_count - 1
+            )
+        )
+        db_session.commit()
+        return False
+    else:
+        new_fav = PersonaFavorite(persona_id=persona_id, user_id=user_id)
+        db_session.add(new_fav)
+        db_session.execute(
+            update(Persona).where(Persona.id == persona_id).values(
+                favorite_count=Persona.favorite_count + 1
+            )
+        )
+        db_session.commit()
+        return True
+
+
+def rate_persona(db_session: Session, persona_id: int, user_id: UUID, rating: int) -> None:
+    from onyx.db.models import PersonaRating
+    existing = db_session.execute(
+        select(PersonaRating).where(
+            PersonaRating.persona_id == persona_id,
+            PersonaRating.user_id == user_id
+        )
+    ).scalar_one_or_none()
+    
+    persona = db_session.get(Persona, persona_id)
+    if not persona:
+        raise ValueError("Persona not found")
+        
+    old_rating = existing.rating if existing else 0
+    
+    if existing:
+        existing.rating = rating
+    else:
+        new_rating = PersonaRating(persona_id=persona_id, user_id=user_id, rating=rating)
+        db_session.add(new_rating)
+        persona.rating_count += 1
+        
+    total_score = (persona.rating_average * (persona.rating_count - (0 if existing else 1)))
+    if existing:
+        total_score -= old_rating
+    total_score += rating
+    
+    persona.rating_average = total_score / persona.rating_count if persona.rating_count > 0 else 0
+    
+    db_session.commit()

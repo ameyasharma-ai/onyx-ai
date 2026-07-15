@@ -172,6 +172,15 @@ class PersonaUpsertRequest(BaseModel):
     icon_name: str | None = (
         None  # New field that is custom chosen during agent creation/editing
     )
+    # PersonaLabs Extensions
+    slug: str | None = None
+    long_description: str | None = None
+    banner_image_id: str | None = None
+    voice_id: str | None = None
+    temperature: float | None = None
+    category: str | None = None
+    tags: list[str] | None = None
+
     search_start_date: datetime | None = None
     label_ids: list[int] | None = None
     # None preserves the stored value; non-admins can never change it
@@ -214,6 +223,19 @@ class MinimalPersonaSnapshot(BaseModel):
 
     uploaded_image_id: str | None
     icon_name: str | None
+
+    # PersonaLabs Extensions
+    slug: str | None
+    long_description: str | None
+    banner_image_id: str | None
+    voice_id: str | None
+    temperature: float | None
+    category: str | None
+    tags: list[str] | None
+    rating_average: float
+    rating_count: int
+    favorite_count: int
+    chat_count: int
 
     is_public: bool
     is_listed: bool
@@ -284,6 +306,17 @@ class MinimalPersonaSnapshot(BaseModel):
             default_model_configuration_id=persona.default_model_configuration_id,
             uploaded_image_id=persona.uploaded_image_id,
             icon_name=persona.icon_name,
+            slug=persona.slug,
+            long_description=persona.long_description,
+            banner_image_id=persona.banner_image_id,
+            voice_id=persona.voice_id,
+            temperature=persona.temperature,
+            category=persona.category,
+            tags=persona.tags,
+            rating_average=persona.rating_average,
+            rating_count=persona.rating_count,
+            favorite_count=persona.favorite_count,
+            chat_count=persona.chat_count,
             is_public=persona.is_public,
             is_listed=persona.is_listed,
             display_priority=persona.display_priority,
@@ -313,6 +346,20 @@ class PersonaSnapshot(BaseModel):
     is_listed: bool
     uploaded_image_id: str | None
     icon_name: str | None
+    
+    # PersonaLabs Extensions
+    slug: str | None
+    long_description: str | None
+    banner_image_id: str | None
+    voice_id: str | None
+    temperature: float | None
+    category: str | None
+    tags: list[str] | None
+    rating_average: float
+    rating_count: int
+    favorite_count: int
+    chat_count: int
+    
     # Return string UUIDs to frontend for consistency
     user_file_ids: list[str]
     display_priority: int | None
@@ -352,6 +399,17 @@ class PersonaSnapshot(BaseModel):
             is_listed=persona.is_listed,
             uploaded_image_id=persona.uploaded_image_id,
             icon_name=persona.icon_name,
+            slug=persona.slug,
+            long_description=persona.long_description,
+            banner_image_id=persona.banner_image_id,
+            voice_id=persona.voice_id,
+            temperature=persona.temperature,
+            category=persona.category,
+            tags=persona.tags,
+            rating_average=persona.rating_average,
+            rating_count=persona.rating_count,
+            favorite_count=persona.favorite_count,
+            chat_count=persona.chat_count,
             user_file_ids=[str(file.id) for file in persona.user_files],
             display_priority=persona.display_priority,
             is_featured=persona.is_featured,

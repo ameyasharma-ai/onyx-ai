@@ -18,6 +18,7 @@ export class LiveSessionClient {
   private onAmplitude: AmplitudeCallback | null = null;
   private onChatSessionId: ((id: string) => void) | null = null;
   private chatSessionId?: string;
+  private personaId?: number;
 
   // For playback
   private playQueue: ArrayBuffer[] = [];
@@ -30,13 +31,15 @@ export class LiveSessionClient {
     onTranscript: TranscriptCallback,
     onAmplitude: AmplitudeCallback,
     onChatSessionId: (id: string) => void,
-    chatSessionId?: string
+    chatSessionId?: string,
+    personaId?: number
   ) {
     this.onStateChange = onStateChange;
     this.onTranscript = onTranscript;
     this.onAmplitude = onAmplitude;
     this.onChatSessionId = onChatSessionId;
     this.chatSessionId = chatSessionId;
+    this.personaId = personaId;
   }
 
   async connect() {
@@ -57,6 +60,9 @@ export class LiveSessionClient {
       let wsUrl = `${protocol}//${host}/api/voice/live-session?token=${token}`;
       if (this.chatSessionId) {
         wsUrl += `&chat_session_id=${this.chatSessionId}`;
+      }
+      if (this.personaId) {
+        wsUrl += `&persona_id=${this.personaId}`;
       }
       
       this.ws = new WebSocket(wsUrl);

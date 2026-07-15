@@ -6,6 +6,7 @@ import { Mic, MicOff, Volume2, VolumeX, X, Settings, ChevronLeft } from "lucide-
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { mutate } from "swr";
+import { useCurrentAgent } from "@/lib/agents/hooks";
 
 export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string, onClose?: () => void }) => {
   const router = useRouter();
@@ -20,6 +21,7 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [disableThinking, setDisableThinking] = useState(false);
+  const currentAgent = useCurrentAgent();
 
   useEffect(() => {
     setMounted(true);
@@ -51,7 +53,7 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
       router.refresh();
     };
 
-    const newClient = new LiveSessionClient(onStateChange, onTranscript, onAmplitude, onChatSessionId, chatSessionId);
+    const newClient = new LiveSessionClient(onStateChange, onTranscript, onAmplitude, onChatSessionId, chatSessionId, currentAgent?.id);
     setClient(newClient);
 
     return () => {
@@ -199,7 +201,16 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
             }}
           >
             {/* Inner glow */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/10 to-transparent mix-blend-overlay" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/10 to-transparent mix-blend-overlay pointer-events-none" />
+            
+            {/* Avatar inside orb */}
+            {currentAgent && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none drop-shadow-2xl">
+                 <span className="text-white text-8xl font-black opacity-80 mix-blend-overlay">
+                   {currentAgent.name.charAt(0)}
+                 </span>
+              </div>
+            )}
           </div>
         </div>
 

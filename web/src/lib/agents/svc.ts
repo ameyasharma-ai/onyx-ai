@@ -37,6 +37,15 @@ function buildAgentUpsertRequest(
     replace_base_system_prompt: params.replace_base_system_prompt,
     hierarchy_node_ids: params.hierarchy_node_ids ?? [],
     document_ids: params.document_ids ?? [],
+
+    // PersonaLabs Extensions
+    slug: params.slug ?? null,
+    long_description: params.long_description ?? null,
+    banner_image_id: params.banner_image_id ?? null,
+    voice_id: params.voice_id ?? null,
+    temperature: params.temperature ?? null,
+    category: params.category ?? null,
+    tags: params.tags ?? null,
   };
 }
 

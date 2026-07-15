@@ -16,23 +16,25 @@ from onyx.db.engine.sql_engine import get_session
 from onyx.db.models import User
 from onyx.db.voice import fetch_default_stt_provider
 from onyx.db.voice import fetch_default_tts_provider
-from onyx.server.query_and_chat.models import SendMessageRequest
+from onyx.server.query_and_chat.models import SendMessageRequest, ChatSessionCreationRequest
 from onyx.utils.logger import setup_logger
 from onyx.voice.factory import get_voice_provider
 from onyx.voice.pipeline import pipeline_llm_to_tts
 from onyx.voice.vad import VadState
 from onyx.voice.vad import VoiceActivityDetector
 from onyx.db.chat import get_chat_session_by_id
+from onyx.db.persona import get_persona_by_id
 
 logger = setup_logger()
 router = APIRouter(prefix="/voice")
 
 class VoiceSessionManager:
-    def __init__(self, websocket: WebSocket, user: User, db_session: Session, chat_session_id: str | None):
+    def __init__(self, websocket: WebSocket, user: User, db_session: Session, chat_session_id: str | None, persona_id: int):
         self.websocket = websocket
         self.user = user
         self.db_session = db_session
         self.chat_session_id = chat_session_id
+        self.persona_id = persona_id
         
         self.session_id = str(uuid.uuid4())
         self.valid_chat_id = None
@@ -40,6 +42,7 @@ class VoiceSessionManager:
         self.stt_provider = None
         self.tts_provider = None
         self.tts_db = None
+        self.voice_id = None
         
         self.vad = VoiceActivityDetector(energy_threshold=1000.0, silence_timeout_s=VOICE_SILENCE_TIMEOUT)
         self.audio_queue = asyncio.Queue()
@@ -65,6 +68,12 @@ class VoiceSessionManager:
                     self.valid_chat_id = chat_session.id
             except Exception as e:
                 logger.error(f"Invalid chat_session_id {self.chat_session_id}: {e}")
+                
+        # Resolve Persona and custom voice if available
+        if self.persona_id > 0:
+            persona = get_persona_by_id(self.persona_id, user=self.user, db_session=self.db_session)
+            if persona and persona.voice_id:
+                self.voice_id = persona.voice_id
 
         stt_db = fetch_default_stt_provider(self.db_session)
         self.tts_db = fetch_default_tts_provider(self.db_session)
@@ -202,12 +211,12 @@ class VoiceSessionManager:
         
         additional_context = "Do not use <think> tags or chain-of-thought reasoning." if self.disable_thinking else None
         
+        chat_session_info = ChatSessionCreationRequest(persona_id=self.persona_id) if not self.valid_chat_id else None
         req = SendMessageRequest(
             message=text,
             file_descriptors=[],
-            prompt_id=0,
-            persona_id=0,
             chat_session_id=self.valid_chat_id,
+            chat_session_info=chat_session_info,
             additional_context=additional_context
         )
         
@@ -232,7 +241,7 @@ class VoiceSessionManager:
         intercepted_stream = _stream_interceptor(answer_stream)
         
         try:
-            voice = self.tts_db.default_voice
+            voice = self.voice_id or self.tts_db.default_voice
             speed = 1.0 
             
             audio_stream = pipeline_llm_to_tts(
@@ -265,6 +274,7 @@ class VoiceSessionManager:
 async def websocket_live_session(
     websocket: WebSocket,
     chat_session_id: str | None = None,
+    persona_id: int = 0,
     _user: User = Depends(current_user_from_websocket),
     db_session: Session = Depends(get_session),
 ):
@@ -274,7 +284,7 @@ async def websocket_live_session(
     and returns synthesized text chunks to the frontend for native TTS.
     """
     await websocket.accept()
-    manager = VoiceSessionManager(websocket, _user, db_session, chat_session_id)
+    manager = VoiceSessionManager(websocket, _user, db_session, chat_session_id, persona_id)
     
     if await manager.initialize():
         await manager.run()

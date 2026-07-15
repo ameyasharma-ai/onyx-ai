@@ -542,12 +542,12 @@ export default function AppSidebar() {
               ? SvgOnyxOctagon
               : SvgMoreHorizontal
           }
-          href="/app/agents"
+          href="/personas"
           folded={folded}
           selected={activeSidebarTab.isMoreAgents()}
           variant={folded ? "sidebar-heavy" : "sidebar-light"}
         >
-          {visibleAgents.length === 0 ? "Explore Agents" : "More Agents"}
+          Persona Library
         </SidebarTab>
       </div>
     ),

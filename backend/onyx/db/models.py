@@ -3886,6 +3886,27 @@ class Persona(Base):
         Integer, nullable=True, default=None
     )
     deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    # Persona Library Extensions
+    slug: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
+    long_description: Mapped[str | None] = mapped_column(String, nullable=True)
+    banner_image_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    voice_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    temperature: Mapped[float | None] = mapped_column(Float, nullable=True)
+    category: Mapped[str | None] = mapped_column(String, nullable=True)
+    tags: Mapped[list[str] | None] = mapped_column(postgresql.ARRAY(String), nullable=True)
+    rating_average: Mapped[float] = mapped_column(Float, default=0.0, server_default="0.0")
+    rating_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    favorite_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    chat_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    time_created: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
 
     # Custom Agent Prompt
     system_prompt: Mapped[str | None] = mapped_column(
@@ -3994,6 +4015,46 @@ class Persona(Base):
             "user_id IS NULL OR owner_group_id IS NULL",
             name="ck_persona_single_owner",
         ),
+    )
+
+
+class PersonaFavorite(Base):
+    __tablename__ = "persona_favorite"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+    )
+    persona_id: Mapped[int] = mapped_column(
+        ForeignKey("persona.id", ondelete="CASCADE"), nullable=False
+    )
+    time_created: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "persona_id", name="uq_persona_favorite_user_persona"),
+    )
+
+
+class PersonaRating(Base):
+    __tablename__ = "persona_rating"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+    )
+    persona_id: Mapped[int] = mapped_column(
+        ForeignKey("persona.id", ondelete="CASCADE"), nullable=False
+    )
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)
+    time_created: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "persona_id", name="uq_persona_rating_user_persona"),
+        CheckConstraint("rating >= 1 AND rating <= 5", name="ck_persona_rating_range"),
     )
 
 

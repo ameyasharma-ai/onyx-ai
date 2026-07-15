@@ -118,6 +118,8 @@ services:
       # Bypass docker build crash by mounting fixed files directly
       - ../../backend/onyx/voice/pipeline.py:/app/onyx/voice/pipeline.py
       - ../../backend/onyx/server/manage/voice/live_session.py:/app/onyx/server/manage/voice/live_session.py
+      - ../../backend/onyx/server/features/persona/api.py:/app/onyx/server/features/persona/api.py
+      - ../../backend/onyx/chat/llm_loop.py:/app/onyx/chat/llm_loop.py
 
   background:
     image: ${ONYX_BACKEND_IMAGE:-onyxdotapp/onyx-backend:${IMAGE_TAG:-latest}}
@@ -172,6 +174,8 @@ services:
       # Bypass docker build crash by mounting fixed files directly
       - ../../backend/onyx/voice/pipeline.py:/app/onyx/voice/pipeline.py
       - ../../backend/onyx/server/manage/voice/live_session.py:/app/onyx/server/manage/voice/live_session.py
+      - ../../backend/onyx/server/features/persona/api.py:/app/onyx/server/features/persona/api.py
+      - ../../backend/onyx/chat/llm_loop.py:/app/onyx/chat/llm_loop.py
     logging:
       driver: json-file
       options:
