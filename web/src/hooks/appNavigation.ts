@@ -19,13 +19,13 @@ export function useAppRouter() {
 
       if (chatSessionId)
         finalParams.push(`${SEARCH_PARAM_NAMES.CHAT_ID}=${chatSessionId}`);
-      else if (agentId)
+      else if (agentId !== undefined && agentId !== null)
         finalParams.push(`${SEARCH_PARAM_NAMES.PERSONA_ID}=${agentId}`);
-      else if (projectId)
+      else if (projectId !== undefined && projectId !== null)
         finalParams.push(`${SEARCH_PARAM_NAMES.PROJECT_ID}=${projectId}`);
 
       const finalString = finalParams.join("&");
-      const finalUrl = `/app?${finalString}`;
+      const finalUrl = `/app${finalString ? "?" + finalString : ""}`;
 
       router.push(finalUrl as Route);
     },

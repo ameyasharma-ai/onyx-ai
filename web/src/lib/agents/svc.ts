@@ -20,6 +20,7 @@ function buildAgentUpsertRequest(
     document_set_ids: params.document_set_ids,
     is_public: params.is_public,
     uploaded_image_id: params.uploaded_image_id,
+    reference_audio_id: params.reference_audio_id,
     icon_name: params.icon_name,
     groups: params.groups,
     users: params.users,

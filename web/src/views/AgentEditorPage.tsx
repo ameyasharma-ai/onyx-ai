@@ -55,6 +55,7 @@ import {
   SvgEyeOff,
   SvgFold,
   SvgImage,
+  SvgMicrophone,
   SvgLock,
   SvgOnyxOctagon,
   SvgOrganization,
@@ -270,10 +271,97 @@ function AgentIconEditor({ existingAgent }: AgentIconEditorProps) {
             ]}
           </PopoverMenu>
         </Popover.Content>
-      </Popover>
-    </>
-  );
-}
+        </Popover>
+      </>
+    );
+  }
+
+  function ReferenceAudioInput({ existingAgent }: { existingAgent: FullAgent | null | undefined }) {
+    const { values, setFieldValue } = useFormikContext<{
+      reference_audio_id: string | null;
+    }>();
+    const [uploadedAudioPreview, setUploadedAudioPreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    async function handleAudioUpload(e: React.ChangeEvent<HTMLInputElement>) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setUploadedAudioPreview(URL.createObjectURL(file));
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch("/api/persona/upload-reference-audio", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          console.error("Failed to upload reference audio");
+          setUploadedAudioPreview(null);
+          return;
+        }
+
+        const { file_id } = await response.json();
+        setFieldValue("reference_audio_id", file_id);
+      } catch (error) {
+        console.error("Upload error:", error);
+        setUploadedAudioPreview(null);
+      }
+    }
+
+    function handleRemove() {
+      setFieldValue("reference_audio_id", null);
+      setUploadedAudioPreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+
+    return (
+      <div className="flex flex-col gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*"
+          onChange={handleAudioUpload}
+          className="hidden"
+        />
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            prominence="secondary"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {values.reference_audio_id ? "Replace Audio" : "Upload Audio"}
+          </Button>
+          {values.reference_audio_id && (
+            <Button
+              type="button"
+              variant="danger"
+              onClick={handleRemove}
+            >
+              Remove
+            </Button>
+          )}
+        </div>
+        {(uploadedAudioPreview || values.reference_audio_id) && (
+          <div className="mt-2 text-sm text-neutral-500 flex items-center gap-2">
+            <SvgMicrophone className="w-4 h-4 text-emerald-500" />
+            {values.reference_audio_id ? "Voice clone active" : "Audio uploaded"}
+          </div>
+        )}
+        {(uploadedAudioPreview || (existingAgent?.id && values.reference_audio_id)) && (
+          <audio 
+            controls 
+            src={uploadedAudioPreview || `/api/persona/${existingAgent!.id}/reference-audio`} 
+            className="mt-2 w-full" 
+          />
+        )}
+      </div>
+    );
+  }
 
 interface OpenApiToolCardProps {
   tool: ToolSnapshot;
@@ -668,6 +756,7 @@ export default function AgentEditorPage({
     // General
     icon_name: existingAgent?.icon_name ?? null,
     uploaded_image_id: existingAgent?.uploaded_image_id ?? null,
+    reference_audio_id: existingAgent?.reference_audio_id ?? null,
     remove_image: false,
     name: existingAgent?.name ?? "",
     description: existingAgent?.description ?? "",
@@ -942,6 +1031,7 @@ export default function AgentEditorPage({
         // uploaded_image: null, // Already uploaded separately
         remove_image: values.remove_image ?? false,
         uploaded_image_id: values.uploaded_image_id,
+        reference_audio_id: values.reference_audio_id,
         icon_name: values.icon_name,
         search_start_date: values.knowledge_cutoff_date || null,
         label_ids: values.label_ids,
@@ -1557,6 +1647,34 @@ export default function AgentEditorPage({
                           </GeneralLayouts.Section>
                         </Card>
                       </GeneralLayouts.Section>
+
+                      <Divider
+                        paddingParallel="fit"
+                        paddingPerpendicular="fit"
+                      />
+
+                      <SimpleCollapsible>
+                        <SimpleCollapsible.Header
+                          title="Premium Voice Cloning"
+                          description="Clone a voice from a reference audio clip (WAV/MP3)."
+                        />
+                        <SimpleCollapsible.Content>
+                          <GeneralLayouts.Section
+                            gap={0.5}
+                            alignItems="stretch"
+                          >
+                            <Card border="solid" rounding="lg">
+                              <InputHorizontal
+                                withLabel="reference_audio"
+                                title="Reference Audio"
+                                description="Upload a clean recording of the voice to be cloned. Works best with 10-30 seconds of high quality speech."
+                              >
+                                <ReferenceAudioInput existingAgent={existingAgent} />
+                              </InputHorizontal>
+                            </Card>
+                          </GeneralLayouts.Section>
+                        </SimpleCollapsible.Content>
+                      </SimpleCollapsible>
 
                       <Divider
                         paddingParallel="fit"

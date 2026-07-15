@@ -217,11 +217,11 @@ export default function AppSidebar() {
     refreshProjects,
     isLoading: isLoadingProjects,
   } = useProjects();
-  const { isLoading: isLoadingAgents } = useAgents();
+  const { agents: allAgents = [], isLoading: isLoadingAgents } = useAgents();
   const currentAgent = useCurrentAgent();
   const {
     pinnedAgents,
-    updatePinnedAgents,
+    togglePinnedAgent,
     isLoading: isLoadingPinnedAgents,
   } = usePinnedAgents();
 
@@ -306,14 +306,18 @@ export default function AppSidebar() {
     }
   }, [buildModeNotification, mutateNotifications]);
 
-  const [visibleAgents, currentAgentIsPinned] = useMemo(
-    () => buildVisibleAgents(pinnedAgents, currentAgent),
-    [pinnedAgents, currentAgent]
-  );
-  const visibleAgentIds = useMemo(
-    () => visibleAgents.map((agent) => agent.id),
-    [visibleAgents]
-  );
+  const visibleAgents = useMemo(() => {
+    const unpinned = allAgents.filter(
+      (agent) => agent.id !== 0 && !pinnedAgents.some((p) => p.id === agent.id)
+    );
+    // Keep pinned ones at the top, ensuring we only show valid agents.
+    // Also use the ones from `allAgents` in case their data updated.
+    const pinned = pinnedAgents
+      .filter((p) => p.id !== 0)
+      .map((p) => allAgents.find((a) => a.id === p.id) || p);
+    
+    return [...pinned, ...unpinned];
+  }, [allAgents, pinnedAgents]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -326,52 +330,7 @@ export default function AppSidebar() {
     })
   );
 
-  // Handle agent drag and drop
-  const handleAgentDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over) return;
-      if (active.id === over.id) return;
 
-      const activeIndex = visibleAgentIds.findIndex(
-        (agentId) => agentId === active.id
-      );
-      const overIndex = visibleAgentIds.findIndex(
-        (agentId) => agentId === over.id
-      );
-
-      let newPinnedAgents: MinimalAgent[];
-
-      if (currentAgent && !currentAgentIsPinned) {
-        // This is the case in which the user is dragging the UNPINNED agent and moving it to somewhere else in the list.
-        // This is an indication that we WANT to pin this agent!
-        if (activeIndex === visibleAgentIds.length - 1) {
-          const pinnedWithCurrent = [...pinnedAgents, currentAgent];
-          newPinnedAgents = arrayMove(
-            pinnedWithCurrent,
-            activeIndex,
-            overIndex
-          );
-        } else {
-          // Use visibleAgents to ensure the indices match with `visibleAgentIds`
-          newPinnedAgents = arrayMove(visibleAgents, activeIndex, overIndex);
-        }
-      } else {
-        // Use visibleAgents to ensure the indices match with `visibleAgentIds`
-        newPinnedAgents = arrayMove(visibleAgents, activeIndex, overIndex);
-      }
-
-      updatePinnedAgents(newPinnedAgents);
-    },
-    [
-      visibleAgentIds,
-      visibleAgents,
-      pinnedAgents,
-      updatePinnedAgents,
-      currentAgent,
-      currentAgentIsPinned,
-    ]
-  );
 
   // Perform the actual move
   async function performChatMove(
@@ -676,23 +635,22 @@ export default function AppSidebar() {
           {isLoadingDynamicContent ? null : (
             <>
               {/* Agents */}
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleAgentDragEnd}
-              >
-                <SidebarLayouts.Section title="Agents">
-                  <SortableContext
-                    items={visibleAgentIds}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {visibleAgents.map((visibleAgent) => (
-                      <AgentButton key={visibleAgent.id} agent={visibleAgent} />
-                    ))}
-                  </SortableContext>
-                  {moreAgentsButton}
-                </SidebarLayouts.Section>
-              </DndContext>
+              <SidebarLayouts.Section title="Agents">
+                <div className="max-h-[40vh] overflow-y-auto overflow-x-hidden pr-1 -mr-1 space-y-1">
+                  {visibleAgents.map((visibleAgent) => (
+                    <AgentButton 
+                      key={visibleAgent.id} 
+                      agent={visibleAgent} 
+                      chatSessions={chatSessions}
+                      isPinned={pinnedAgents.some(p => p.id === visibleAgent.id)}
+                      onTogglePin={(pinned) => {
+                        togglePinnedAgent(visibleAgent, pinned);
+                      }}
+                    />
+                  ))}
+                </div>
+                {moreAgentsButton}
+              </SidebarLayouts.Section>
 
               {/* Wrap Projects and Recents in a shared DndContext for chat-to-project drag */}
               <DndContext
@@ -725,7 +683,7 @@ export default function AppSidebar() {
 
                 {/* Recents */}
                 <RecentsSection
-                  chatSessions={chatSessions}
+                  chatSessions={chatSessions.filter(s => s.persona_id === 0 || s.persona_id === null)}
                   hasMore={hasMore}
                   isLoadingMore={isLoadingMore}
                   onLoadMore={loadMore}

@@ -108,14 +108,14 @@ const TTS_PROVIDER_GROUPS: ProviderGroup[] = [
     ],
   },
   {
-    providerType: "kokoro",
-    providerLabel: "Kokoro ONNX",
+    providerType: "qwen3_tts",
+    providerLabel: "Qwen3-TTS",
     models: [
       {
-        id: "kokoro",
-        label: "Kokoro ONNX",
-        subtitle: "Local text-to-speech via Kokoro ONNX server.",
-        providerType: "kokoro",
+        id: "qwen3_tts",
+        label: "Qwen3-TTS",
+        subtitle: "Local low-latency TTS using Qwen3-TTS.",
+        providerType: "qwen3_tts",
       },
     ],
   },
@@ -231,7 +231,7 @@ export default function VoicePage() {
     model: ModelDetails,
     mode: ProviderMode
   ): "disconnected" | "connected" | "selected" => {
-    const KEYLESS_TYPES = new Set(["whisper_cpp", "kokoro"]);
+    const KEYLESS_TYPES = new Set(["whisper_cpp", "qwen3_tts"]);
     const provider = providersByType.get(model.providerType);
     if (!provider) return "disconnected";
     // Keyless providers are connected if they exist; key-based require api_key.

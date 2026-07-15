@@ -89,15 +89,15 @@ export const VOICE_PROVIDER_DETAILS: Record<string, VoiceProviderDetail> = {
     docsUrl: "https://github.com/ggerganov/whisper.cpp",
     sttModels: [{ id: "default", name: "Server Default" }],
   },
-  kokoro: {
-    label: "Kokoro ONNX",
+  qwen3_tts: {
+    label: "Qwen3-TTS",
     icon: SvgMicrophone,
-    docsUrl: "https://github.com/remsky/Kokoro-FastAPI",
+    docsUrl: "https://github.com/QwenLM/Qwen3-TTS",
     voiceDocsUrl: {
-      url: "https://github.com/remsky/Kokoro-FastAPI",
-      label: "Kokoro",
+      url: "https://github.com/QwenLM/Qwen3-TTS",
+      label: "Qwen3-TTS",
     },
-    ttsModels: [{ id: "kokoro", name: "Kokoro ONNX" }],
+    ttsModels: [{ id: "qwen3_tts", name: "Qwen3-TTS" }],
   },
 };
 

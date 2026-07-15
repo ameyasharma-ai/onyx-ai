@@ -31,7 +31,7 @@ logger = setup_logger()
 router = APIRouter(prefix="/voice")
 
 # Provider types that do not require an API key (local servers).
-KEYLESS_PROVIDER_TYPES: frozenset[str] = frozenset({"whisper_cpp", "kokoro"})
+KEYLESS_PROVIDER_TYPES: frozenset[str] = frozenset({"whisper_cpp", "chatterbox", "qwen3_tts"})
 
 
 # Byte threshold for non-PCM formats, where the audio can't be analyzed server-side
@@ -815,7 +815,12 @@ async def handle_chunked_synthesis(
                 continue
 
             msg_data_type = data.get("type")
-            if msg_data_type == "synthesize":
+            if msg_data_type == "config":
+                if isinstance(data.get("voice"), str) and data["voice"]:
+                    voice = data["voice"]
+                if isinstance(data.get("speed"), (int, float)):
+                    speed = float(data["speed"])
+            elif msg_data_type == "synthesize":
                 text = data.get("text", "")
                 # Enforce per-text size limit
                 if len(text) > WS_MAX_TTS_TEXT_LENGTH:

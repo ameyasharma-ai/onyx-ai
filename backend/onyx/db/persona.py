@@ -394,6 +394,7 @@ def create_update_persona(
             datetime_aware=create_persona_request.datetime_aware,
             replace_base_system_prompt=create_persona_request.replace_base_system_prompt,
             uploaded_image_id=create_persona_request.uploaded_image_id,
+            reference_audio_id=create_persona_request.reference_audio_id,
             icon_name=create_persona_request.icon_name,
             display_priority=create_persona_request.display_priority,
             remove_image=create_persona_request.remove_image,
@@ -1282,6 +1283,7 @@ def upsert_persona(
     persona_id: int | None = None,
     commit: bool = True,
     uploaded_image_id: str | None = None,
+    reference_audio_id: str | None = None,
     icon_name: str | None = None,
     display_priority: int | None = None,
     is_listed: bool | None = None,
@@ -1461,6 +1463,8 @@ def upsert_persona(
             existing_persona.is_public = is_public
         if remove_image or uploaded_image_id:
             existing_persona.uploaded_image_id = uploaded_image_id
+        if reference_audio_id:
+            existing_persona.reference_audio_id = reference_audio_id
         existing_persona.icon_name = icon_name
         existing_persona.search_start_date = search_start_date
         if label_ids is not None:
@@ -1539,6 +1543,7 @@ def upsert_persona(
             starter_messages=starter_messages,
             tools=tools or [],
             uploaded_image_id=uploaded_image_id,
+            reference_audio_id=reference_audio_id,
             icon_name=icon_name,
             display_priority=display_priority,
             is_listed=(is_listed if is_listed is not None else True),

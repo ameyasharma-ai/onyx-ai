@@ -33,7 +33,7 @@ logger = setup_logger()
 router = APIRouter(prefix="/voice")
 
 # Provider types that do not require an API key (local servers).
-KEYLESS_PROVIDER_TYPES: frozenset[str] = frozenset({"whisper_cpp", "kokoro"})
+KEYLESS_PROVIDER_TYPES: frozenset[str] = frozenset({"whisper_cpp", "chatterbox", "qwen3_tts"})
 
 # Max audio file size: 25MB (Whisper limit)
 MAX_AUDIO_SIZE = 25 * 1024 * 1024

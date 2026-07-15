@@ -10,3 +10,5 @@ lib/shared/dist
 
 # Explicitly include src/app/build (overrides .gitignore /build pattern)
 !src/app/build
+
+**/node_modules

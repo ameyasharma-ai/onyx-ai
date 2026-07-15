@@ -74,12 +74,11 @@ def get_voice_provider(provider: VoiceProvider) -> VoiceProviderInterface:
             stt_model=stt_model,
         )
 
-    elif provider_type == "kokoro":
-        from onyx.voice.providers.kokoro import KokoroProvider
+    elif provider_type == "qwen3_tts":
+        from onyx.voice.providers.qwen3_tts import Qwen3TTSProvider
 
-        return KokoroProvider(
+        return Qwen3TTSProvider(
             api_base=api_base,
-            default_voice=default_voice,
             custom_config=custom_config or {},
         )
 

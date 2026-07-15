@@ -120,6 +120,9 @@ export interface MessageToolbarProps {
   // Citations
   citations: StreamingCitation[];
   documentMap: Map<string, OnyxDocument>;
+  
+  // Voice ID
+  voice?: string | null;
 }
 
 export default function MessageToolbar({
@@ -141,6 +144,7 @@ export default function MessageToolbar({
   currentModelProvider,
   citations,
   documentMap,
+  voice,
 }: MessageToolbarProps) {
   // Document sidebar state - managed internally to reduce prop drilling
   const documentSidebarVisible = useDocumentSidebarVisible();
@@ -294,6 +298,7 @@ export default function MessageToolbar({
                 text={
                   removeThinkingTokens(getTextContent(rawPackets)) as string
                 }
+                voice={voice ?? undefined}
               />
             )}
 

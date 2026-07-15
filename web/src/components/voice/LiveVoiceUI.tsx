@@ -6,6 +6,7 @@ import { Mic, MicOff, Volume2, VolumeX, X, Settings, ChevronLeft } from "lucide-
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { mutate } from "swr";
+import AgentAvatar from "@/refresh-components/avatars/AgentAvatar";
 import { useCurrentAgent } from "@/lib/agents/hooks";
 
 export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string, onClose?: () => void }) => {
@@ -39,9 +40,18 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
 
     const onAmplitude = (rms: number) => {
       if (orbRef.current) {
-        // Map RMS (0 to ~1000+) to a CSS scale value (1 to ~1.4)
-        const scale = 1 + Math.min(rms / 500, 0.4);
+        // Map RMS (0 to ~1000+) to a CSS scale value (1 to ~1.3)
+        const scale = 1 + Math.min(rms / 800, 0.3);
+        const glowSpread = Math.min(rms / 10, 100);
+        
         orbRef.current.style.transform = `scale(${scale})`;
+        
+        // Dynamic glow based on volume
+        if (rms > 10) {
+          orbRef.current.style.boxShadow = `0 0 ${glowSpread}px ${glowSpread/2}px rgba(255, 255, 255, 0.3)`;
+        } else {
+          orbRef.current.style.boxShadow = '';
+        }
       }
     };
 
@@ -190,25 +200,23 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
           <div 
             ref={orbRef}
             className={`relative w-48 h-48 rounded-full shadow-[0_0_100px_rgba(255,255,255,0.1)] transition-colors duration-700 ease-out border border-white/10 ${
-              state === "listening" ? "bg-gradient-to-br from-indigo-500 to-cyan-400 shadow-indigo-500/30" :
-              state === "thinking" ? "bg-gradient-to-br from-purple-500 to-pink-500 shadow-purple-500/30 animate-pulse" :
-              state === "speaking" ? "bg-gradient-to-br from-cyan-400 to-blue-500 shadow-cyan-500/40" :
-              "bg-gradient-to-br from-neutral-800 to-neutral-900 shadow-none"
+              state === "listening" ? "bg-gradient-to-br from-indigo-500 to-cyan-400" :
+              state === "thinking" ? "bg-gradient-to-br from-purple-500 to-pink-500 animate-pulse" :
+              state === "speaking" ? "bg-gradient-to-br from-cyan-400 to-blue-500" :
+              "bg-gradient-to-br from-neutral-800 to-neutral-900"
             }`}
             style={{ 
               backdropFilter: "blur(40px)",
-              transition: "transform 0.05s ease-out, background-color 0.5s ease, box-shadow 0.5s ease" 
+              transition: "transform 0.05s ease-out, background-color 0.5s ease, box-shadow 0.05s ease-out" 
             }}
           >
             {/* Inner glow */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/10 to-transparent mix-blend-overlay pointer-events-none" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/10 to-transparent mix-blend-overlay pointer-events-none z-10" />
             
             {/* Avatar inside orb */}
             {currentAgent && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none drop-shadow-2xl">
-                 <span className="text-white text-8xl font-black opacity-80 mix-blend-overlay">
-                   {currentAgent.name.charAt(0)}
-                 </span>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden rounded-full drop-shadow-2xl opacity-90">
+                 <AgentAvatar agent={currentAgent} size={192} />
               </div>
             )}
           </div>

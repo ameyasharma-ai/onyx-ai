@@ -63,7 +63,7 @@ export function VoiceProviderSetupModal({
     : (existingProvider?.tts_model ?? "tts-1");
 
   const isEditing = !!existingProvider;
-  const isKeyless = providerType === "whisper_cpp" || providerType === "kokoro";
+  const isKeyless = providerType === "whisper_cpp" || providerType === "qwen3_tts";
 
   // Non-form state: dynamic voice options
   const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>([]);
@@ -114,7 +114,7 @@ export function VoiceProviderSetupModal({
   const defaultServerUrl =
     providerType === "whisper_cpp"
       ? "http://localhost:8080"
-      : providerType === "kokoro"
+      : providerType === "qwen3_tts"
         ? "http://localhost:8880"
         : "";
 

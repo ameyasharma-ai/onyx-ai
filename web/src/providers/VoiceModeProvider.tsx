@@ -73,7 +73,8 @@ interface VoiceModeContextType {
   streamTTS: (
     text: string,
     isComplete?: boolean,
-    messageNodeId?: number
+    messageNodeId?: number,
+    voiceId?: string | null
   ) => void;
   /** Stop TTS playback */
   stopTTS: (options?: { manual?: boolean }) => void;
@@ -191,6 +192,7 @@ export function VoiceModeProvider({ children }: { children: React.ReactNode }) {
   const lastRawTextRef = useRef("");
   const pendingTextRef = useRef<string[]>([]);
   const isConnectingRef = useRef(false);
+  const currentVoiceIdRef = useRef<string | null>(null);
 
   // Timers
   const flushTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -493,6 +495,7 @@ export function VoiceModeProvider({ children }: { children: React.ReactNode }) {
           JSON.stringify({
             type: "config",
             speed: playbackSpeed,
+            ...(currentVoiceIdRef.current && { voice: currentVoiceIdRef.current }),
           })
         );
 
@@ -673,7 +676,10 @@ export function VoiceModeProvider({ children }: { children: React.ReactNode }) {
   );
 
   const streamTTS = useCallback(
-    (text: string, isComplete: boolean = false, messageNodeId?: number) => {
+    (text: string, isComplete: boolean = false, messageNodeId?: number, voiceId?: string | null) => {
+      if (voiceId !== undefined) {
+        currentVoiceIdRef.current = voiceId;
+      }
       if (!autoPlayback) {
         return;
       }

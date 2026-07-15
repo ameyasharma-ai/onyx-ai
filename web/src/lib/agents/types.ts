@@ -67,6 +67,7 @@ export interface MinimalAgent {
   knowledge_sources?: ValidSources[];
   default_model_configuration_id?: number | null;
   uploaded_image_id?: string;
+  reference_audio_id?: string;
   icon_name?: string;
   is_public: boolean;
   is_listed: boolean;
@@ -136,6 +137,7 @@ export interface AgentUpsertParameters {
   remove_image?: boolean;
   search_start_date: Date | null;
   uploaded_image_id: string | null;
+  reference_audio_id: string | null;
   icon_name: string | null;
   is_featured: boolean;
   label_ids: number[] | null;
@@ -168,6 +170,7 @@ export interface AgentUpsertRequest {
   tool_ids: number[];
   remove_image?: boolean;
   uploaded_image_id: string | null;
+  reference_audio_id: string | null;
   icon_name: string | null;
   search_start_date: Date | null;
   is_featured: boolean;

@@ -311,6 +311,22 @@ def upload_file(
     return {"file_id": file_id}
 
 
+# used for chatterbox reference audio
+@basic_router.post("/upload-reference-audio")
+def upload_reference_audio(
+    file: UploadFile,
+    _: User = Depends(require_permission(Permission.BASIC_ACCESS)),
+) -> dict[str, str]:
+    file_store = get_default_file_store()
+    file_id = file_store.save_file(
+        content=file.file,
+        display_name=file.filename,
+        file_origin=FileOrigin.CHAT_UPLOAD,
+        file_type=file.content_type or "audio/wav",
+    )
+    return {"file_id": file_id}
+
+
 """Endpoints for all"""
 
 
@@ -754,6 +770,52 @@ def get_persona_avatar(
             file_record.file_origin,
         )
         raise OnyxError(OnyxErrorCode.NOT_FOUND, "Avatar not found")
+
+    etag = f'"{file_id}"'
+    cache_headers = {
+        "Cache-Control": "private, max-age=31536000, immutable",
+        "ETag": etag,
+        "Vary": "Cookie",
+    }
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=cache_headers)
+
+    file_store = get_default_file_store()
+    file_io = file_store.read_file(file_id, mode="b")
+    return StreamingResponse(
+        file_io, media_type=file_record.file_type, headers=cache_headers
+    )
+
+
+@basic_router.get("/{persona_id}/reference-audio")
+def get_persona_reference_audio(
+    persona_id: int,
+    request: Request,
+    user: User = Depends(require_permission(Permission.BASIC_ACCESS)),
+    db_session: Session = Depends(get_session),
+) -> Response:
+    try:
+        persona = get_persona_by_id(
+            persona_id=persona_id,
+            user=user,
+            db_session=db_session,
+            is_for_edit=False,
+        )
+    except ValueError:
+        raise OnyxError(OnyxErrorCode.NOT_FOUND, "Reference audio not found")
+
+    file_id = persona.reference_audio_id
+    if not file_id:
+        raise OnyxError(OnyxErrorCode.NOT_FOUND, "Reference audio not found")
+
+    file_record = get_filerecord_by_file_id_optional(file_id, db_session)
+    if not file_record:
+        logger.warning(
+            "Persona %s references audio file %s with no matching FileRecord; rejecting.",
+            persona_id,
+            file_id,
+        )
+        raise OnyxError(OnyxErrorCode.NOT_FOUND, "Reference audio not found")
 
     etag = f'"{file_id}"'
     cache_headers = {

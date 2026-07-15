@@ -17,6 +17,9 @@
 .venv
 .mypy_cache
 .idea
+__pycache__/
+*.py[cod]
+*$py.class
 
 # testing
 /web/test-results/
@@ -67,3 +70,10 @@ plans/
 .claude/scheduled_tasks.lock
 .claude/worktrees/
 !.claude/settings.json
+
+# Temp testing files
+test_qwen3_tts.py
+test_chatterbox.py
+test_output.wav
+tmp_faster_qwen3_tts/
+tmp_qwen_tts/

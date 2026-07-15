@@ -40,7 +40,7 @@ Two protocol classes define streaming session interfaces:
 | `azure` | `AzureVoiceProvider` | STT + TTS (streaming) |
 | `elevenlabs` | `ElevenLabsVoiceProvider` | STT + TTS (streaming) |
 | `whisper_cpp` | `WhisperCppProvider` | STT only (local) |
-| `kokoro` | `KokoroProvider` | TTS only (local) |
+| `chatterbox` | `ChatterboxProvider` | TTS only (local) |
 
 ### Database Model
 
@@ -124,7 +124,7 @@ Browser → POST /voice/synthesize {text, voice, speed}
 
 ### Keyless Provider Concept
 
-Local providers (Whisper.cpp, Kokoro) don't use API keys. The system identifies
+Local providers (Whisper.cpp, Chatterbox) don't use API keys. The system identifies
 "keyless" providers by type and bypasses API key checks in:
 - Voice status endpoint
 - Transcription endpoint
@@ -140,24 +140,24 @@ Local providers (Whisper.cpp, Kokoro) don't use API keys. The system identifies
 - Health: `GET /` returns 200
 - Config: `WHISPER_CPP_URL` env var (default: `http://localhost:8080`)
 
-### Kokoro ONNX (TTS)
+### Chatterbox (TTS)
 
-- Server: Kokoro-FastAPI (OpenAI-compatible)
+- Server: Resemble AI Chatterbox
 - Endpoint: `POST /v1/audio/speech` (JSON body, streams audio)
 - Health: `GET /v1/models` returns 200
-- Config: `KOKORO_URL` env var (default: `http://localhost:8880`)
-- Voices: 23 built-in voices (American/British, male/female)
-- Speed: `DEFAULT_KOKORO_SPEED` env var (default: 1.0)
-- Voice: `DEFAULT_KOKORO_VOICE` env var (default: af_heart)
+- Config: `CHATTERBOX_URL` env var (default: `http://localhost:8880`)
+- Features: Supports Zero-Shot Voice Cloning via `reference_audio_id` on Personas
+- Speed: `DEFAULT_CHATTERBOX_SPEED` env var (default: 1.0)
+- Voice: `DEFAULT_CHATTERBOX_VOICE` env var (default: default)
 
 ## Environment Variables
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `WHISPER_CPP_URL` | `http://localhost:8080` | Whisper.cpp server URL |
-| `KOKORO_URL` | `http://localhost:8880` | Kokoro ONNX server URL |
-| `DEFAULT_KOKORO_VOICE` | `af_heart` | Default Kokoro voice |
-| `DEFAULT_KOKORO_SPEED` | `1.0` | Default speech speed |
+| `CHATTERBOX_URL` | `http://localhost:8880` | Chatterbox server URL |
+| `DEFAULT_CHATTERBOX_VOICE` | `default` | Default Chatterbox voice |
+| `DEFAULT_CHATTERBOX_SPEED` | `1.0` | Default speech speed |
 | `VOICE_DISABLE_STREAMING_STT` | `false` | Force chunked STT |
 | `VOICE_DISABLE_STREAMING_FALLBACK` | `false` | Disable chunked fallback |
 

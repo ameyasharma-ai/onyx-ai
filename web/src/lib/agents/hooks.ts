@@ -59,7 +59,7 @@ export function useAgents() {
  */
 export function useAgent(agentId: number | null) {
   const { data, error, isLoading, mutate } = useSWR<FullAgent>(
-    agentId ? SWR_KEYS.persona(agentId) : null,
+    agentId !== null ? SWR_KEYS.persona(agentId) : null,
     errorHandlingFetcher,
     {
       revalidateOnFocus: false,
@@ -195,10 +195,10 @@ export function useCurrentAgent(): MinimalAgent | null {
 
   return useMemo(() => {
     if (agents.length === 0) return null;
-    const agentId = agentIdRaw
+    const agentId = agentIdRaw !== null && agentIdRaw !== undefined
       ? parseInt(agentIdRaw)
       : currentChatSession?.persona_id;
-    if (!agentId) return null;
+    if (agentId === null || agentId === undefined) return null;
     return agents.find((a) => a.id === agentId) ?? null;
   }, [agents, agentIdRaw, currentChatSession?.persona_id]);
 }

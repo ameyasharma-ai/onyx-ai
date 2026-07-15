@@ -583,11 +583,25 @@ services:
         max-size: "50m"
         max-file: "6"
 
-  kokoro:
-    image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+  qwen3_tts:
+    build:
+      context: ./qwen3_tts
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "8880:8880"
+      - "8880:8000"
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - NVIDIA_VISIBLE_DEVICES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - model_cache_huggingface:/root/.cache/huggingface
     logging:
       driver: json-file
       options:

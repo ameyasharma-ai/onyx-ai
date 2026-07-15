@@ -246,15 +246,15 @@ const AgentMessage = React.memo(function AgentMessage({
         return;
       }
       hasStreamedIncompleteRef.current = true;
-      streamTTSRef.current(textContent, false, nodeId);
+      streamTTSRef.current(textContent, false, nodeId, chatState.agent?.reference_audio_id || chatState.agent?.voice_id);
       return;
     }
 
     if (hasStreamedIncompleteRef.current) {
-      streamTTSRef.current(textContent, true, nodeId);
+      streamTTSRef.current(textContent, true, nodeId, chatState.agent?.reference_audio_id || chatState.agent?.voice_id);
       ttsCompletedRef.current = true;
     }
-  }, [packetCount, isComplete, rawPackets, nodeId, stopPacketSeen, stopReason]); // packetCount triggers on new packets since rawPackets is mutated in place
+  }, [packetCount, isComplete, rawPackets, nodeId, stopPacketSeen, stopReason, chatState.agent?.voice_id, chatState.agent?.reference_audio_id]); // packetCount triggers on new packets since rawPackets is mutated in place
 
   // Stop TTS immediately when user cancels generation.
   useEffect(() => {
@@ -381,6 +381,7 @@ const AgentMessage = React.memo(function AgentMessage({
           currentModelProvider={chatState.overriddenModelProvider}
           citations={citations}
           documentMap={documentMap}
+          voice={chatState.agent?.reference_audio_id || chatState.agent?.voice_id}
         />
       )}
     </div>

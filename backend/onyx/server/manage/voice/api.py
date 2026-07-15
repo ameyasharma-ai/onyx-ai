@@ -36,7 +36,7 @@ logger = setup_logger()
 admin_router = APIRouter(prefix="/admin/voice")
 
 # Provider types that do not require an API key (local servers).
-KEYLESS_PROVIDER_TYPES: frozenset[str] = frozenset({"whisper_cpp", "kokoro"})
+KEYLESS_PROVIDER_TYPES: frozenset[str] = frozenset({"whisper_cpp", "chatterbox", "qwen3_tts"})
 
 VOICE_PROVIDER_VALIDATION_FAILURE_MESSAGE = (
     "Connection test failed. Please verify your API key and settings."
