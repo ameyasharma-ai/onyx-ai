@@ -97,62 +97,42 @@ async def clone_prompt(file: UploadFile = File(...)):
         
     audio_bytes = await file.read()
     
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-        tmp.write(audio_bytes)
-        tmp_path = tmp.name
-        
+    tmp_path = None
     try:
-        # Create voice clone prompt (x_vector_only_mode=True means no ICL/ref_text required)
-        # However, Qwen3TTS create_voice_clone_prompt is what we need to call.
-        # Wait, FasterQwen3TTS wrapper uses `model.model.create_voice_clone_prompt` 
-        # But `FasterQwen3TTS` exposes `generate_voice_clone_streaming` which takes `ref_audio` directly.
-        # If we pass `ref_audio=tmp_path` to `generate_voice_clone_streaming`, it caches it internally in `_voice_prompt_cache`!
-        # Let's extract the prompt so we don't have to keep the audio file.
-        prompt_items = model.model.create_voice_clone_prompt(
-            ref_audio=tmp_path,
-            ref_text="",
-            x_vector_only_mode=True
-        )
-        vcp = model.model._prompt_items_to_voice_clone_prompt(prompt_items)
-        voice_prompts_cache[voice_id] = vcp
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+            tmp.write(audio_bytes)
+            tmp_path = tmp.name
+            
+        # Instead of extracting tensors which can get corrupted during deepcopy,
+        # we will just store the raw WAV bytes and pass the file to generate_voice_clone_streaming.
+        voice_prompts_cache[voice_id] = audio_bytes
         return {"status": "success", "voice_id": voice_id}
     except Exception as e:
         logger.error(f"Failed to clone prompt: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        os.remove(tmp_path)
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
-async def audio_generator(text: str, vcp: dict):
+import asyncio
+generation_lock = asyncio.Lock()
+
+async def audio_generator(text: str, vcp: dict, req_voice: str):
+    import copy
+    import zlib
+    import torch
+    
     # stream returns chunks of numpy arrays
     try:
-        # If vcp is None, we need to generate without voice clone.
-        # But FasterQwen3TTS says "Default voice generation not yet implemented."
-        # However, we can trick it by providing a dummy zero tensor vcp if necessary,
-        # or maybe the model supports generating with xvec_only and dummy speaker embedding?
-        # Actually, if vcp is None, maybe we can just fall back to standard TTS?
-        if vcp is None:
-            # Let's see if generate_voice_clone_streaming handles None ref_audio
-            # No, it says "ref_audio is required when voice_clone_prompt is not provided"
-            pass # We will handle this in the outer function
-            
-        stream = model.generate_voice_clone_streaming(
-            text=text,
-            language="English",
-            voice_clone_prompt=vcp,
-            xvec_only=True
-        )
-        
-        # Convert numpy chunks to MP3 bytes using ffmpeg to fix browser playback
-        import asyncio
-        import subprocess
-
         # Start ffmpeg process
+        import subprocess
         process = await asyncio.create_subprocess_exec(
             "ffmpeg",
             "-f", "s16le",
             "-ar", "24000",
             "-ac", "1",
             "-i", "pipe:0",
+            "-flush_packets", "1",
             "-f", "mp3",
             "pipe:1",
             stdin=asyncio.subprocess.PIPE,
@@ -161,36 +141,87 @@ async def audio_generator(text: str, vcp: dict):
         )
 
         async def feed_ffmpeg():
-            try:
-                loop = asyncio.get_event_loop()
-                while True:
+            async with generation_lock:
+                tmp_path = None
+                if vcp is not None and isinstance(vcp, bytes):
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+                        tmp.write(vcp)
+                        tmp_path = tmp.name
+                    
+                try:
+                    import re
+                    sentences = re.split(r'(?<=[.!?,\n])\s+', text)
+                    text_chunks = [s.strip() for s in sentences if s.strip()]
+                    if not text_chunks:
+                        text_chunks = [text]
+
+                    loop = asyncio.get_event_loop()
+
+                    for chunk in text_chunks:
+                        def generate_chunk(c=chunk):
+                            # Re-seed RNG for EACH chunk to force exactly the same voice timbre
+                            voice_seed = zlib.crc32((req_voice or "default").encode('utf-8'))
+                            torch.manual_seed(voice_seed)
+                            if torch.cuda.is_available():
+                                torch.cuda.manual_seed_all(voice_seed)
+                                
+                            # Use NON-streaming generation per clause
+                            if tmp_path:
+                                return model.generate_voice_clone(
+                                    text=c,
+                                    language="English",
+                                    ref_audio=tmp_path,
+                                    xvec_only=True
+                                )
+                            else:
+                                return model.generate(
+                                    text=c,
+                                    language="English"
+                                )
+
+                        audio_arrays, sr = await loop.run_in_executor(None, generate_chunk)
+                        
+                        for audio_data in audio_arrays:
+                            process.stdin.write((audio_data * 32767).astype(np.int16).tobytes())
+                            await process.stdin.drain()
+                except asyncio.CancelledError:
+                    logger.info("feed_ffmpeg cancelled, exiting gracefully")
+                except Exception as e:
+                    logger.error(f"Error feeding ffmpeg: {e}")
+                finally:
                     try:
-                        audio_chunk, sr, timing = await loop.run_in_executor(None, next, stream)
-                    except StopIteration:
-                        break
-                    pcm16 = (audio_chunk * 32767).astype(np.int16).tobytes()
-                    process.stdin.write(pcm16)
-                    await process.stdin.drain()
-            except Exception as e:
-                logger.error(f"Error feeding ffmpeg: {e}")
-            finally:
-                process.stdin.close()
-                await process.stdin.wait_closed()
+                        process.stdin.close()
+                        await process.stdin.wait_closed()
+                    except Exception:
+                        pass
+                    if tmp_path:
+                        import os
+                        os.path.exists(tmp_path) and os.remove(tmp_path)
 
         # Start feeding in the background
-        asyncio.create_task(feed_ffmpeg())
+        feed_task = asyncio.create_task(feed_ffmpeg())
 
-        # Yield from stdout
-        while True:
-            chunk = await process.stdout.read(4096)
-            if not chunk:
-                break
-            yield chunk
+        try:
+            # Yield from stdout
+            while True:
+                chunk = await process.stdout.read(4096)
+                if not chunk:
+                    break
+                yield chunk
 
-        await process.wait()
+            await process.wait()
+        except BaseException as e:
+            logger.info(f"Stream interrupted or cancelled: {e}")
+            try:
+                process.kill()
+            except ProcessLookupError:
+                pass
+            feed_task.cancel()
+            raise
             
     except Exception as e:
         logger.error(f"Streaming failed: {e}")
+        raise
 
 @app.post("/audio/speech")
 async def stream_speech(req: SynthesizeRequest):
@@ -207,16 +238,7 @@ async def stream_speech(req: SynthesizeRequest):
     if vcp is None:
         raise HTTPException(status_code=404, detail="Voice clone prompt not found in cache")
 
-    # Use a deterministic seed based on the voice ID to ensure the character's
-    # voice characteristics (timbre, mood) remain perfectly consistent across chunks.
-    import zlib
-    import torch
-    voice_seed = zlib.crc32((req.voice or "default").encode('utf-8'))
-    torch.manual_seed(voice_seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(voice_seed)
-
     return StreamingResponse(
-        audio_generator(req.text, vcp), 
+        audio_generator(req.text, vcp, req.voice or "default"), 
         media_type="audio/pcm"  # or audio/mpeg, depends on what frontend expects
     )

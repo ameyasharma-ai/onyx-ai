@@ -72,8 +72,8 @@ class VoiceSessionManager:
         # Resolve Persona and custom voice if available
         if self.persona_id > 0:
             persona = get_persona_by_id(self.persona_id, user=self.user, db_session=self.db_session)
-            if persona and persona.voice_id:
-                self.voice_id = persona.voice_id
+            if persona:
+                self.voice_id = persona.reference_audio_id or persona.voice_id
 
         stt_db = fetch_default_stt_provider(self.db_session)
         self.tts_db = fetch_default_tts_provider(self.db_session)

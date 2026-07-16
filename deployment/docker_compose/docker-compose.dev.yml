@@ -36,9 +36,9 @@ services:
     environment:
       - bootstrap.memory_lock=false
 
-  inference_model_server:
-    ports:
-      - "${MODEL_SERVER_HOST_PORT:-9000}:9000"
+#  inference_model_server:
+#    ports:
+#      - "${MODEL_SERVER_HOST_PORT:-9000}:9000"
 
   cache:
     ports:
@@ -51,6 +51,6 @@ services:
       - "${MINIO_API_HOST_PORT:-9004}:9000"
       - "${MINIO_CONSOLE_HOST_PORT:-9005}:9001"
 
-  code-interpreter:
-    ports:
-      - "${CODE_INTERPRETER_HOST_PORT:-8000}:8000"
+#  code-interpreter:
+#    ports:
+#      - "${CODE_INTERPRETER_HOST_PORT:-8000}:8000"
