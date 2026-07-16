@@ -3895,6 +3895,7 @@ class Persona(Base):
     
     # Chatterbox Reference Audio Voice Fields
     reference_audio_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    voice_gender: Mapped[str | None] = mapped_column(String, nullable=True)
     voice_metadata: Mapped[dict | None] = mapped_column(postgresql.JSONB, nullable=True)
     voice_status: Mapped[str | None] = mapped_column(String, nullable=True)
     voice_last_updated: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

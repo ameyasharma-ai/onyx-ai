@@ -395,6 +395,7 @@ def create_update_persona(
             replace_base_system_prompt=create_persona_request.replace_base_system_prompt,
             uploaded_image_id=create_persona_request.uploaded_image_id,
             reference_audio_id=create_persona_request.reference_audio_id,
+            voice_gender=create_persona_request.voice_gender,
             icon_name=create_persona_request.icon_name,
             display_priority=create_persona_request.display_priority,
             remove_image=create_persona_request.remove_image,
@@ -1287,6 +1288,7 @@ def upsert_persona(
     icon_name: str | None = None,
     display_priority: int | None = None,
     is_listed: bool | None = None,
+    voice_gender: str | None = None,
     remove_image: bool | None = None,
     search_start_date: datetime | None = None,
     builtin_persona: bool = False,
@@ -1465,6 +1467,8 @@ def upsert_persona(
             existing_persona.uploaded_image_id = uploaded_image_id
         if reference_audio_id:
             existing_persona.reference_audio_id = reference_audio_id
+        if voice_gender is not None:
+            existing_persona.voice_gender = voice_gender
         existing_persona.icon_name = icon_name
         existing_persona.search_start_date = search_start_date
         if label_ids is not None:
@@ -1544,6 +1548,7 @@ def upsert_persona(
             tools=tools or [],
             uploaded_image_id=uploaded_image_id,
             reference_audio_id=reference_audio_id,
+            voice_gender=voice_gender,
             icon_name=icon_name,
             display_priority=display_priority,
             is_listed=(is_listed if is_listed is not None else True),

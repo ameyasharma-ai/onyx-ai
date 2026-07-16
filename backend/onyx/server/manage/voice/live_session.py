@@ -74,6 +74,11 @@ class VoiceSessionManager:
             persona = get_persona_by_id(self.persona_id, user=self.user, db_session=self.db_session)
             if persona:
                 self.voice_id = persona.reference_audio_id or persona.voice_id
+                if not self.voice_id and persona.voice_gender:
+                    if persona.voice_gender.lower() == "male":
+                        self.voice_id = "default_male"
+                    elif persona.voice_gender.lower() == "female":
+                        self.voice_id = "default_female"
 
         stt_db = fetch_default_stt_provider(self.db_session)
         self.tts_db = fetch_default_tts_provider(self.db_session)

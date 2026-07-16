@@ -29,8 +29,8 @@ class Qwen3TTSProvider(VoiceProviderInterface):
         ``/clone_prompt`` endpoint.  Returns the voice ID to use for synthesis
         (falls back to ``"default"`` when the voice cannot be loaded).
         """
-        if not voice or voice == "default":
-            return "default"
+        if not voice or voice in ["default", "default_male", "default_female"]:
+            return voice or "default"
 
         # Fast path: already cached in the container
         try:

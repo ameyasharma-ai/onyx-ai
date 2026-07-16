@@ -178,10 +178,11 @@ class PersonaUpsertRequest(BaseModel):
     long_description: str | None = None
     banner_image_id: str | None = None
     voice_id: str | None = None
+    voice_gender: str | None = None
     temperature: float | None = None
     category: str | None = None
     tags: list[str] | None = None
-
+    
     search_start_date: datetime | None = None
     label_ids: list[int] | None = None
     # None preserves the stored value; non-admins can never change it
@@ -231,6 +232,7 @@ class MinimalPersonaSnapshot(BaseModel):
     long_description: str | None
     banner_image_id: str | None
     voice_id: str | None
+    voice_gender: str | None
     temperature: float | None
     category: str | None
     tags: list[str] | None
@@ -313,6 +315,7 @@ class MinimalPersonaSnapshot(BaseModel):
             long_description=persona.long_description,
             banner_image_id=persona.banner_image_id,
             voice_id=persona.voice_id,
+            voice_gender=persona.voice_gender,
             temperature=persona.temperature,
             category=persona.category,
             tags=persona.tags,
@@ -356,6 +359,7 @@ class PersonaSnapshot(BaseModel):
     long_description: str | None
     banner_image_id: str | None
     voice_id: str | None
+    voice_gender: str | None
     temperature: float | None
     category: str | None
     tags: list[str] | None
@@ -408,6 +412,7 @@ class PersonaSnapshot(BaseModel):
             long_description=persona.long_description,
             banner_image_id=persona.banner_image_id,
             voice_id=persona.voice_id,
+            voice_gender=persona.voice_gender,
             temperature=persona.temperature,
             category=persona.category,
             tags=persona.tags,
@@ -494,6 +499,7 @@ class FullPersonaSnapshot(PersonaSnapshot):
             banner_image_id=persona.banner_image_id,
             reference_audio_id=persona.reference_audio_id,
             voice_id=persona.voice_id,
+            voice_gender=persona.voice_gender,
             temperature=persona.temperature,
             category=persona.category,
             tags=persona.tags,

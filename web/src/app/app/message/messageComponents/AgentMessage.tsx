@@ -381,7 +381,12 @@ const AgentMessage = React.memo(function AgentMessage({
           currentModelProvider={chatState.overriddenModelProvider}
           citations={citations}
           documentMap={documentMap}
-          voice={chatState.agent?.reference_audio_id || chatState.agent?.voice_id}
+          voice={
+            chatState.agent?.reference_audio_id || 
+            chatState.agent?.voice_id || 
+            (chatState.agent?.voice_gender === "male" ? "default_male" : 
+             chatState.agent?.voice_gender === "female" ? "default_female" : undefined)
+          }
         />
       )}
     </div>

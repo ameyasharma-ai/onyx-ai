@@ -45,7 +45,7 @@ async def startup_event():
             model.warmup()
             logger.info("Model loaded and warmed up successfully.")
             
-            # Generate a default voice clone prompt from 0.5s of silence
+            # Generate a default voice clone prompt from 1s of silence
             logger.info("Generating default voice clone prompt...")
             with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
                 import wave
@@ -55,14 +55,25 @@ async def startup_event():
                     wav.setframerate(24000)
                     wav.writeframes(b'\x00' * 24000 * 1) # 1 sec silence
                 
-                prompt_items = model.model.create_voice_clone_prompt(
-                    ref_audio=tmp.name,
-                    ref_text="",
-                    x_vector_only_mode=True
-                )
-                voice_prompts_cache["default"] = model.model._prompt_items_to_voice_clone_prompt(prompt_items)
+                with open(tmp.name, 'rb') as f:
+                    default_wav_bytes = f.read()
+                
+                voice_prompts_cache["default"] = default_wav_bytes
                 os.remove(tmp.name)
-            logger.info("Default voice initialized.")
+            logger.info("Default voice initialized as silence.")
+            
+            for voice_key, file_name in [("default_male", "default_male.wav"), ("default_female", "default_female.wav")]:
+                if os.path.exists(file_name):
+                    try:
+                        with open(file_name, 'rb') as f:
+                            voice_prompts_cache[voice_key] = f.read()
+                        logger.info(f"{voice_key} voice initialized from {file_name}.")
+                    except Exception as e:
+                        logger.error(f"Failed to load {file_name}, using default silence: {e}")
+                        voice_prompts_cache[voice_key] = voice_prompts_cache["default"]
+                else:
+                    logger.info(f"{file_name} not found, mapping {voice_key} to default voice.")
+                    voice_prompts_cache[voice_key] = voice_prompts_cache["default"]
             
         except Exception as e:
             logger.error(f"Failed to load FasterQwen3TTS model: {e}")

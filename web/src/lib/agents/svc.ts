@@ -44,6 +44,7 @@ function buildAgentUpsertRequest(
     long_description: params.long_description ?? null,
     banner_image_id: params.banner_image_id ?? null,
     voice_id: params.voice_id ?? null,
+    voice_gender: params.voice_gender ?? null,
     temperature: params.temperature ?? null,
     category: params.category ?? null,
     tags: params.tags ?? null,

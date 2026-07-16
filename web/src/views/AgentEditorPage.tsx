@@ -14,6 +14,8 @@ import InputTypeInField from "@/refresh-components/form/InputTypeInField";
 import InputTextAreaField from "@/refresh-components/form/InputTextAreaField";
 import InputTypeInElementField from "@/refresh-components/form/InputTypeInElementField";
 import InputDatePickerField from "@/refresh-components/form/InputDatePickerField";
+import InputSelectField from "@/refresh-components/form/InputSelectField";
+import InputSelect from "@/refresh-components/inputs/InputSelect";
 import {
   Card as CardLayout,
   Content,
@@ -757,6 +759,7 @@ export default function AgentEditorPage({
     icon_name: existingAgent?.icon_name ?? null,
     uploaded_image_id: existingAgent?.uploaded_image_id ?? null,
     reference_audio_id: existingAgent?.reference_audio_id ?? null,
+    voice_gender: existingAgent?.voice_gender ?? null,
     remove_image: false,
     name: existingAgent?.name ?? "",
     description: existingAgent?.description ?? "",
@@ -908,6 +911,8 @@ export default function AgentEditorPage({
     user_file_ids: Yup.array().of(Yup.string()),
     selected_sources: Yup.array().of(Yup.string()),
 
+    voice_gender: Yup.string().nullable().optional(),
+
     // Advanced
     default_model_configuration_id: Yup.number().nullable().optional(),
     knowledge_cutoff_date: Yup.date()
@@ -1032,6 +1037,7 @@ export default function AgentEditorPage({
         remove_image: values.remove_image ?? false,
         uploaded_image_id: values.uploaded_image_id,
         reference_audio_id: values.reference_audio_id,
+        voice_gender: values.voice_gender,
         icon_name: values.icon_name,
         search_start_date: values.knowledge_cutoff_date || null,
         label_ids: values.label_ids,
@@ -1670,6 +1676,23 @@ export default function AgentEditorPage({
                                 description="Upload a clean recording of the voice to be cloned. Works best with 10-30 seconds of high quality speech."
                               >
                                 <ReferenceAudioInput existingAgent={existingAgent} />
+                              </InputHorizontal>
+                              
+                              <Divider paddingParallel="fit" paddingPerpendicular="fit" />
+                              
+                              <InputHorizontal
+                                withLabel="voice_gender"
+                                title="Voice Gender"
+                                description="Sets the gender for the default generated voice if no reference audio is provided."
+                              >
+                                <InputSelectField name="voice_gender">
+                                  <InputSelect.Trigger placeholder="Select Voice Gender" />
+                                  <InputSelect.Content>
+                                    <InputSelect.Item value="">Default</InputSelect.Item>
+                                    <InputSelect.Item value="male">Male</InputSelect.Item>
+                                    <InputSelect.Item value="female">Female</InputSelect.Item>
+                                  </InputSelect.Content>
+                                </InputSelectField>
                               </InputHorizontal>
                             </Card>
                           </GeneralLayouts.Section>

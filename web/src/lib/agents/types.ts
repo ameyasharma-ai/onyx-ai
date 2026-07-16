@@ -85,6 +85,7 @@ export interface MinimalAgent {
   long_description?: string | null;
   banner_image_id?: string | null;
   voice_id?: string | null;
+  voice_gender?: string | null;
   temperature?: number | null;
   category?: string | null;
   tags?: string[] | null;
@@ -150,6 +151,7 @@ export interface AgentUpsertParameters {
   long_description?: string | null;
   banner_image_id?: string | null;
   voice_id?: string | null;
+  voice_gender?: string | null;
   temperature?: number | null;
   category?: string | null;
   tags?: string[] | null;
@@ -184,9 +186,10 @@ export interface AgentUpsertRequest {
   // PersonaLabs Extensions
   slug?: string | null;
   long_description?: string | null;
-  banner_image_id?: string | null;
-  voice_id?: string | null;
-  temperature?: number | null;
+  banner_image_id: string | null;
+  voice_id: string | null;
+  voice_gender: string | null;
+  temperature: number | null;
   category?: string | null;
   tags?: string[] | null;
 }
