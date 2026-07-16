@@ -763,6 +763,13 @@ export default function AgentEditorPage({
     remove_image: false,
     name: existingAgent?.name ?? "",
     description: existingAgent?.description ?? "",
+    
+    // Persona Brain Configs
+    pb_backstory: existingAgent?.personality_config?.backstory ?? "",
+    pb_traits: (existingAgent?.personality_config?.traits || existingAgent?.personality_config?.core_traits) ?? "",
+    pb_tone: existingAgent?.speaking_style_config?.tone ?? "",
+    pb_filler_words: existingAgent?.speaking_style_config?.filler_words ?? "",
+    pb_complexity: existingAgent?.speaking_style_config?.vocabulary_complexity ?? "",
 
     // Prompts
     instructions: existingAgent?.system_prompt ?? "",
@@ -912,6 +919,13 @@ export default function AgentEditorPage({
     selected_sources: Yup.array().of(Yup.string()),
 
     voice_gender: Yup.string().nullable().optional(),
+    
+    // Persona Brain
+    pb_backstory: Yup.string().optional(),
+    pb_traits: Yup.string().optional(),
+    pb_tone: Yup.string().optional(),
+    pb_filler_words: Yup.string().optional(),
+    pb_complexity: Yup.string().optional(),
 
     // Advanced
     default_model_configuration_id: Yup.number().nullable().optional(),
@@ -1054,6 +1068,16 @@ export default function AgentEditorPage({
         replace_base_system_prompt: values.replace_base_system_prompt,
         task_prompt: values.reminders || "",
         datetime_aware: existingAgent ? existingAgent.datetime_aware : false,
+        
+        personality_config: (values.pb_backstory || values.pb_traits) ? {
+          backstory: values.pb_backstory,
+          traits: values.pb_traits
+        } : null,
+        speaking_style_config: (values.pb_tone || values.pb_filler_words || values.pb_complexity) ? {
+          tone: values.pb_tone,
+          filler_words: values.pb_filler_words,
+          vocabulary_complexity: values.pb_complexity
+        } : null,
       };
 
       // Call API
@@ -1500,6 +1524,64 @@ export default function AgentEditorPage({
                             placeholder="Think step by step and show reasoning for complex problems. Use specific examples. Emphasize action items, and leave blanks for the human to fill in when you have unknown. Use a polite enthusiastic tone."
                           />
                         </InputVertical>
+
+                        <SimpleCollapsible>
+                          <SimpleCollapsible.Header
+                            title="Persona Brain (Advanced)"
+                            description="Configure detailed identity, behavior, and speaking style parameters for the new Persona Engine."
+                          />
+                          <SimpleCollapsible.Content>
+                            <GeneralLayouts.Section gap={0.5} alignItems="stretch">
+                              <Card border="solid" rounding="lg">
+                                <GeneralLayouts.Section>
+                                  <InputHorizontal
+                                    withLabel="pb_backstory"
+                                    title="Backstory"
+                                    description="A short summary of who they are and their background."
+                                  >
+                                    <InputTextAreaField name="pb_backstory" placeholder="e.g. Founder of Amazon and Blue Origin." />
+                                  </InputHorizontal>
+                                  <Divider paddingParallel="fit" paddingPerpendicular="fit" />
+                                  
+                                  <InputHorizontal
+                                    withLabel="pb_traits"
+                                    title="Core Traits"
+                                    description="Comma-separated list of core personality traits."
+                                  >
+                                    <InputTypeInField name="pb_traits" placeholder="e.g. analytical, disciplined, strategic" />
+                                  </InputHorizontal>
+                                  <Divider paddingParallel="fit" paddingPerpendicular="fit" />
+                                  
+                                  <InputHorizontal
+                                    withLabel="pb_tone"
+                                    title="Tone"
+                                    description="Comma-separated list of tones (e.g. direct, dry humor, warm)."
+                                  >
+                                    <InputTypeInField name="pb_tone" placeholder="e.g. confident, precise" />
+                                  </InputHorizontal>
+                                  <Divider paddingParallel="fit" paddingPerpendicular="fit" />
+                                  
+                                  <InputHorizontal
+                                    withLabel="pb_filler_words"
+                                    title="Filler Words"
+                                    description="Comma-separated list of filler words used in speech."
+                                  >
+                                    <InputTypeInField name="pb_filler_words" placeholder="e.g. umm, like, you know" />
+                                  </InputHorizontal>
+                                  <Divider paddingParallel="fit" paddingPerpendicular="fit" />
+                                  
+                                  <InputHorizontal
+                                    withLabel="pb_complexity"
+                                    title="Vocabulary Complexity"
+                                    description="Complexity of words used (e.g. Simple, High, Academic)."
+                                  >
+                                    <InputTypeInField name="pb_complexity" placeholder="e.g. Medium" />
+                                  </InputHorizontal>
+                                </GeneralLayouts.Section>
+                              </Card>
+                            </GeneralLayouts.Section>
+                          </SimpleCollapsible.Content>
+                        </SimpleCollapsible>
 
                         <InputVertical
                           withLabel="starter_messages"

@@ -11,9 +11,10 @@ interface TTSButtonProps {
   text: string;
   voice?: string;
   speed?: number;
+  speech_instruction?: string;
 }
 
-function TTSButton({ text, voice, speed }: TTSButtonProps) {
+function TTSButton({ text, voice, speed, speech_instruction }: TTSButtonProps) {
   const { isPlaying, isLoading, error, play, pause, stop } = useVoicePlayback();
   const { isTTSPlaying, isTTSLoading, isAwaitingAutoPlaybackStart, stopTTS } =
     useVoiceMode();
@@ -36,7 +37,7 @@ function TTSButton({ text, voice, speed }: TTSButtonProps) {
       try {
         // Ensure no voice-mode stream is active before starting manual playback.
         stopTTS();
-        await play(text, voice, speed);
+        await play(text, voice, speed, speech_instruction);
       } catch (err) {
         console.error("TTS playback failed:", err);
         toast.error("Could not play audio");
@@ -49,6 +50,7 @@ function TTSButton({ text, voice, speed }: TTSButtonProps) {
     text,
     voice,
     speed,
+    speech_instruction,
     play,
     pause,
     stop,

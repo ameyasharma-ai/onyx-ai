@@ -74,7 +74,8 @@ interface VoiceModeContextType {
     text: string,
     isComplete?: boolean,
     messageNodeId?: number,
-    voiceId?: string | null
+    voiceId?: string | null,
+    speech_instruction?: string | null
   ) => void;
   /** Stop TTS playback */
   stopTTS: (options?: { manual?: boolean }) => void;
@@ -193,6 +194,7 @@ export function VoiceModeProvider({ children }: { children: React.ReactNode }) {
   const pendingTextRef = useRef<string[]>([]);
   const isConnectingRef = useRef(false);
   const currentVoiceIdRef = useRef<string | null>(null);
+  const currentSpeechInstructionRef = useRef<string | null>(null);
 
   // Timers
   const flushTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -496,6 +498,7 @@ export function VoiceModeProvider({ children }: { children: React.ReactNode }) {
             type: "config",
             speed: playbackSpeed,
             ...(currentVoiceIdRef.current && { voice: currentVoiceIdRef.current }),
+            ...(currentSpeechInstructionRef.current && { speech_instruction: currentSpeechInstructionRef.current }),
           })
         );
 
@@ -676,9 +679,12 @@ export function VoiceModeProvider({ children }: { children: React.ReactNode }) {
   );
 
   const streamTTS = useCallback(
-    (text: string, isComplete: boolean = false, messageNodeId?: number, voiceId?: string | null) => {
+    (text: string, isComplete: boolean = false, messageNodeId?: number, voiceId?: string | null, speech_instruction?: string | null) => {
       if (voiceId !== undefined) {
         currentVoiceIdRef.current = voiceId;
+      }
+      if (speech_instruction !== undefined) {
+        currentSpeechInstructionRef.current = speech_instruction;
       }
       if (!autoPlayback) {
         return;

@@ -3900,6 +3900,15 @@ class Persona(Base):
     voice_status: Mapped[str | None] = mapped_column(String, nullable=True)
     voice_last_updated: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Persona Brain
+    personality_config: Mapped[dict | None] = mapped_column(postgresql.JSONB, nullable=True)
+    speaking_style_config: Mapped[dict | None] = mapped_column(postgresql.JSONB, nullable=True)
+    voice_profile_config: Mapped[dict | None] = mapped_column(postgresql.JSONB, nullable=True)
+    compiled_persona_profile: Mapped[str | None] = mapped_column(String, nullable=True)
+    compiled_voice_profile: Mapped[dict | None] = mapped_column(postgresql.JSONB, nullable=True)
+    compilation_timestamp: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+
     temperature: Mapped[float | None] = mapped_column(Float, nullable=True)
     category: Mapped[str | None] = mapped_column(String, nullable=True)
     tags: Mapped[list[str] | None] = mapped_column(postgresql.ARRAY(String), nullable=True)

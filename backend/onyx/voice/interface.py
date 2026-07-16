@@ -88,7 +88,7 @@ class VoiceProviderInterface(ABC):
 
     @abstractmethod
     async def synthesize_stream(
-        self, text: str, voice: str | None = None, speed: float = 1.0
+        self, text: str, voice: str | None = None, speed: float = 1.0, speech_instruction: str | None = None
     ) -> AsyncIterator[bytes]:
         """
         Convert text to audio stream (Text-to-Speech).
@@ -164,7 +164,7 @@ class VoiceProviderInterface(ABC):
         raise NotImplementedError("Streaming STT not supported by this provider")
 
     async def create_streaming_synthesizer(
-        self, voice: str | None = None, speed: float = 1.0
+        self, voice: str | None = None, speed: float = 1.0, speech_instruction: str | None = None
     ) -> "StreamingSynthesizerProtocol":
         """
         Create a streaming TTS session for real-time audio synthesis.

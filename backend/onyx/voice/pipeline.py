@@ -37,6 +37,15 @@ async def semantic_chunker(token_stream: AsyncIterator[str]) -> AsyncIterator[st
             
             # Keep the remainder in the buffer
             buffer = buffer[end_idx:].lstrip()
+        elif len(buffer) > 120:
+            # Fallback: if we haven't found a punctuation boundary for a long time,
+            # force a break at the last space to prevent indefinite buffering and TTS delay.
+            last_space = buffer.rfind(" ")
+            if last_space != -1:
+                chunk = buffer[:last_space].strip()
+                if any(c.isalnum() for c in chunk):
+                    yield chunk
+                buffer = buffer[last_space:].lstrip()
 
     # Yield whatever is left in the buffer at the end of the stream
     buffer = buffer.strip()
@@ -88,7 +97,8 @@ async def pipeline_llm_to_tts(
     answer_stream: AnswerStream,
     synthesizer_func, # A factory/function that takes (text, voice, speed) and returns AsyncIterator[bytes]
     voice: str,
-    speed: float
+    speed: float,
+    speech_instruction: str | None = None
 ) -> AsyncIterator[bytes]:
     """
     Orchestrates the entire backend-to-backend streaming loop:
@@ -114,7 +124,14 @@ async def pipeline_llm_to_tts(
                 # synthesizer_func returns an async generator of bytes (fragments of an MP3)
                 # The frontend decodeAudioData expects a COMPLETE valid MP3 file to decode.
                 # Thus, we MUST buffer all fragments for this chunk and yield it as one message.
-                audio_stream = synthesizer_func(text_chunk, voice, speed)
+                if hasattr(synthesizer_func, "__code__") and "speech_instruction" in synthesizer_func.__code__.co_varnames:
+                    audio_stream = synthesizer_func(text=text_chunk, voice=voice, speed=speed, speech_instruction=speech_instruction)
+                else:
+                    # For bound methods or others where inspection is tricky, just try/except or assume standard signature
+                    try:
+                        audio_stream = synthesizer_func(text=text_chunk, voice=voice, speed=speed, speech_instruction=speech_instruction)
+                    except TypeError:
+                        audio_stream = synthesizer_func(text=text_chunk, voice=voice, speed=speed)
                 
                 complete_audio = b""
                 async for audio_bytes in audio_stream:

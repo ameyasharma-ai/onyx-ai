@@ -723,7 +723,8 @@ async def handle_streaming_synthesis(
                             "Streaming synthesis: waiting for audio stream to complete"
                         )
                         try:
-                            await asyncio.wait_for(send_task, timeout=60.0)
+                            # Use a very generous timeout to allow long generations to complete
+                            await asyncio.wait_for(send_task, timeout=600.0)
                         except asyncio.TimeoutError:
                             logger.warning(
                                 "Streaming synthesis: timeout waiting for audio"
@@ -774,6 +775,7 @@ async def handle_chunked_synthesis(
     text_buffer: list[str] = []
     voice: str | None = None
     speed = 1.0
+    speech_instruction: str | None = None
 
     # Process pre-received message if provided
     pending_message = first_message
@@ -820,6 +822,8 @@ async def handle_chunked_synthesis(
                     voice = data["voice"]
                 if isinstance(data.get("speed"), (int, float)):
                     speed = float(data["speed"])
+                if isinstance(data.get("speech_instruction"), str) and data["speech_instruction"]:
+                    speech_instruction = data["speech_instruction"]
             elif msg_data_type == "synthesize":
                 text = data.get("text", "")
                 # Enforce per-text size limit
@@ -842,6 +846,8 @@ async def handle_chunked_synthesis(
                     voice = data["voice"]
                 if isinstance(data.get("speed"), (int, float)):
                     speed = float(data["speed"])
+                if isinstance(data.get("speech_instruction"), str) and data["speech_instruction"]:
+                    speech_instruction = data["speech_instruction"]
             elif msg_data_type == "end":
                 logger.info("Chunked synthesis: end signal received")
                 full_text = strip_markdown_for_tts(" ".join(text_buffer))
@@ -856,7 +862,7 @@ async def handle_chunked_synthesis(
                     "Chunked synthesis: sending full text (%s chars)", len(full_text)
                 )
                 async for audio_chunk in provider.synthesize_stream(
-                    full_text, voice=voice, speed=speed
+                    full_text, voice=voice, speed=speed, speech_instruction=speech_instruction
                 ):
                     if not audio_chunk:
                         continue
@@ -963,16 +969,18 @@ async def websocket_synthesize(
                 message = await websocket.receive()
                 voice = None
                 speed = 1.0
+                speech_instruction = None
                 if "text" in message:
                     try:
                         data = json.loads(message["text"])
                         voice = data.get("voice")
                         speed = data.get("speed", 1.0)
+                        speech_instruction = data.get("speech_instruction")
                     except json.JSONDecodeError:
                         pass
 
                 streaming_synthesizer = await provider.create_streaming_synthesizer(
-                    voice=voice, speed=speed
+                    voice=voice, speed=speed, speech_instruction=speech_instruction
                 )
                 logger.info(
                     "WebSocket synthesize: streaming synthesizer created successfully"

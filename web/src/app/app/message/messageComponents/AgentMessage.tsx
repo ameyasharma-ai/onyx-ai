@@ -246,12 +246,24 @@ const AgentMessage = React.memo(function AgentMessage({
         return;
       }
       hasStreamedIncompleteRef.current = true;
-      streamTTSRef.current(textContent, false, nodeId, chatState.agent?.reference_audio_id || chatState.agent?.voice_id);
+      streamTTSRef.current(
+        textContent, 
+        false, 
+        nodeId, 
+        chatState.agent?.reference_audio_id || chatState.agent?.voice_id,
+        chatState.agent?.compiled_voice_profile?.speech_instruction
+      );
       return;
     }
 
     if (hasStreamedIncompleteRef.current) {
-      streamTTSRef.current(textContent, true, nodeId, chatState.agent?.reference_audio_id || chatState.agent?.voice_id);
+      streamTTSRef.current(
+        textContent, 
+        true, 
+        nodeId, 
+        chatState.agent?.reference_audio_id || chatState.agent?.voice_id,
+        chatState.agent?.compiled_voice_profile?.speech_instruction
+      );
       ttsCompletedRef.current = true;
     }
   }, [packetCount, isComplete, rawPackets, nodeId, stopPacketSeen, stopReason, chatState.agent?.voice_id, chatState.agent?.reference_audio_id]); // packetCount triggers on new packets since rawPackets is mutated in place
@@ -387,6 +399,7 @@ const AgentMessage = React.memo(function AgentMessage({
             (chatState.agent?.voice_gender === "male" ? "default_male" : 
              chatState.agent?.voice_gender === "female" ? "default_female" : undefined)
           }
+          speech_instruction={chatState.agent?.compiled_voice_profile?.speech_instruction}
         />
       )}
     </div>

@@ -406,6 +406,8 @@ def create_update_persona(
             commit=False,
             hierarchy_node_ids=create_persona_request.hierarchy_node_ids,
             document_ids=create_persona_request.document_ids,
+            personality_config=create_persona_request.personality_config,
+            speaking_style_config=create_persona_request.speaking_style_config,
         )
 
         versioned_update_persona_access = fetch_versioned_implementation(
@@ -1298,6 +1300,9 @@ def upsert_persona(
     hierarchy_node_ids: list[int] | None = None,
     document_ids: list[str] | None = None,
     replace_base_system_prompt: bool = False,
+    # Persona Brain
+    personality_config: dict | None = None,
+    speaking_style_config: dict | None = None,
 ) -> Persona:
     """
     NOTE: This operation cannot update persona configuration options that
@@ -1495,6 +1500,12 @@ def upsert_persona(
             existing_persona.datetime_aware = datetime_aware
         existing_persona.replace_base_system_prompt = replace_base_system_prompt
 
+        # Persona Brain Configs
+        if personality_config is not None:
+            existing_persona.personality_config = personality_config
+        if speaking_style_config is not None:
+            existing_persona.speaking_style_config = speaking_style_config
+
         # Do not delete any associations manually added unless
         # a new updated list is provided
         if document_sets is not None:
@@ -1558,6 +1569,8 @@ def upsert_persona(
             labels=labels or [],
             hierarchy_nodes=hierarchy_nodes or [],
             attached_documents=attached_documents or [],
+            personality_config=personality_config,
+            speaking_style_config=speaking_style_config,
         )
         db_session.add(new_persona)
         if user_files:
@@ -1567,6 +1580,13 @@ def upsert_persona(
         db_session.commit()
     else:
         # flush the session so that the persona has an ID
+        db_session.flush()
+
+    from onyx.server.features.persona.compiler import trigger_persona_compilation
+    persona = trigger_persona_compilation(persona, db_session)
+    if commit:
+        db_session.commit()
+    else:
         db_session.flush()
 
     return persona

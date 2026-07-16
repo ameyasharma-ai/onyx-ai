@@ -555,8 +555,8 @@ class OpenAIVoiceProvider(VoiceProviderInterface):
         return response.text
 
     async def synthesize_stream(
-        self, text: str, voice: str | None = None, speed: float = 1.0
-    ) -> AsyncIterator[bytes]:
+        self, text: str, voice: str | None, speed: float, speech_instruction: str | None = None
+    ) -> AsyncGenerator[bytes, None]:
         """
         Convert text to audio using OpenAI TTS with streaming.
 
@@ -642,8 +642,8 @@ class OpenAIVoiceProvider(VoiceProviderInterface):
         return transcriber
 
     async def create_streaming_synthesizer(
-        self, voice: str | None = None, speed: float = 1.0
-    ) -> OpenAIStreamingSynthesizer:
+        self, voice: str | None = None, speed: float = 1.0, speech_instruction: str | None = None
+    ) -> "StreamingSynthesizerProtocol":
         """Create a streaming TTS session using HTTP streaming API."""
         if not self.api_key:
             raise ValueError("API key required for streaming TTS")

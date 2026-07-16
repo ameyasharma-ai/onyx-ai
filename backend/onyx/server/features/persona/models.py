@@ -19,6 +19,7 @@ from onyx.server.features.document_set.models import DocumentSetSummary
 from onyx.server.features.tool.models import ToolSnapshot
 from onyx.server.features.tool.tool_visibility import should_expose_tool_to_fe
 from onyx.server.models import MinimalUserSnapshot
+from onyx.server.features.persona.compiler import compile_persona_profile, compile_voice_profile
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -182,7 +183,12 @@ class PersonaUpsertRequest(BaseModel):
     temperature: float | None = None
     category: str | None = None
     tags: list[str] | None = None
+
+    # Persona Brain
+    personality_config: dict | None = None
+    speaking_style_config: dict | None = None
     
+
     search_start_date: datetime | None = None
     label_ids: list[int] | None = None
     # None preserves the stored value; non-admins can never change it
@@ -240,6 +246,12 @@ class MinimalPersonaSnapshot(BaseModel):
     rating_count: int
     favorite_count: int
     chat_count: int
+
+    # Persona Brain
+    personality_config: dict | None
+    speaking_style_config: dict | None
+    compiled_persona_profile: str | None
+    compiled_voice_profile: dict | None
 
     is_public: bool
     is_listed: bool
@@ -328,6 +340,13 @@ class MinimalPersonaSnapshot(BaseModel):
             display_priority=persona.display_priority,
             is_featured=persona.is_featured,
             builtin_persona=persona.builtin_persona,
+            
+            # Persona Brain
+            personality_config=persona.personality_config,
+            speaking_style_config=persona.speaking_style_config,
+            compiled_persona_profile=persona.compiled_persona_profile or compile_persona_profile(persona),
+            compiled_voice_profile=persona.compiled_voice_profile or compile_voice_profile(persona),
+            
             labels=[PersonaLabelSnapshot.from_model(label) for label in persona.labels],
             owner=(
                 # Owner email is PII: keep the id (needed for ownership/creator
@@ -397,6 +416,12 @@ class PersonaSnapshot(BaseModel):
     task_prompt: str | None = None
     datetime_aware: bool = True
 
+    # Persona Brain
+    personality_config: dict | None = None
+    speaking_style_config: dict | None = None
+    compiled_persona_profile: str | None = None
+    compiled_voice_profile: dict | None = None
+
     @classmethod
     def from_model(cls, persona: Persona) -> "PersonaSnapshot":
         return PersonaSnapshot(
@@ -463,6 +488,12 @@ class PersonaSnapshot(BaseModel):
             replace_base_system_prompt=persona.replace_base_system_prompt,
             task_prompt=persona.task_prompt,
             datetime_aware=persona.datetime_aware,
+            
+            # Persona Brain
+            personality_config=persona.personality_config,
+            speaking_style_config=persona.speaking_style_config,
+            compiled_persona_profile=persona.compiled_persona_profile or compile_persona_profile(persona),
+            compiled_voice_profile=persona.compiled_voice_profile or compile_voice_profile(persona),
         )
 
 
@@ -551,6 +582,12 @@ class FullPersonaSnapshot(PersonaSnapshot):
             replace_base_system_prompt=persona.replace_base_system_prompt,
             task_prompt=persona.task_prompt,
             datetime_aware=persona.datetime_aware,
+            
+            # Persona Brain
+            personality_config=persona.personality_config,
+            speaking_style_config=persona.speaking_style_config,
+            compiled_persona_profile=persona.compiled_persona_profile or compile_persona_profile(persona),
+            compiled_voice_profile=persona.compiled_voice_profile or compile_voice_profile(persona),
         )
 
 

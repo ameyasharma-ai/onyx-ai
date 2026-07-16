@@ -45,7 +45,8 @@ export class HTTPStreamingTTSPlayer {
   async speak(
     text: string,
     voice?: string,
-    speed: number = 1.0
+    speed: number = 1.0,
+    speech_instruction?: string
   ): Promise<void> {
     // Cleanup any previous playback
     this.cleanup();
@@ -58,6 +59,7 @@ export class HTTPStreamingTTSPlayer {
       text,
       ...(voice && { voice }),
       speed,
+      ...(speech_instruction && { speech_instruction }),
     });
 
     // Check if MediaSource is supported

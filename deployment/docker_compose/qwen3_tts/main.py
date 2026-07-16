@@ -29,6 +29,7 @@ class SynthesizeRequest(BaseModel):
     text: str
     voice: Optional[str] = "default"
     speed: float = 1.0
+    instruct: Optional[str] = None
 
 @app.on_event("startup")
 async def startup_event():
@@ -128,7 +129,7 @@ async def clone_prompt(file: UploadFile = File(...)):
 import asyncio
 generation_lock = asyncio.Lock()
 
-async def audio_generator(text: str, vcp: dict, req_voice: str):
+async def audio_generator(text: str, vcp: dict, req_voice: str, instruct: Optional[str] = None):
     import copy
     import zlib
     import torch
@@ -182,7 +183,8 @@ async def audio_generator(text: str, vcp: dict, req_voice: str):
                                     text=c,
                                     language="English",
                                     ref_audio=tmp_path,
-                                    xvec_only=True
+                                    xvec_only=True,
+                                    instruct=instruct
                                 )
                             else:
                                 return model.generate(
@@ -249,7 +251,10 @@ async def stream_speech(req: SynthesizeRequest):
     if vcp is None:
         raise HTTPException(status_code=404, detail="Voice clone prompt not found in cache")
 
+    if req.instruct:
+        logger.info(f"Synthesizing speech with instruct: {req.instruct}")
+
     return StreamingResponse(
-        audio_generator(req.text, vcp, req.voice or "default"), 
+        audio_generator(req.text, vcp, req.voice or "default", req.instruct), 
         media_type="audio/pcm"  # or audio/mpeg, depends on what frontend expects
     )

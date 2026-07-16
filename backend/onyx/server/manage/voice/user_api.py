@@ -155,6 +155,7 @@ class SynthesizeRequest(BaseModel):
     text: str = Field(..., min_length=1)
     voice: str | None = None
     speed: float | None = Field(default=None, ge=0.5, le=2.0)
+    speech_instruction: str | None = None
 
 
 @router.post("/synthesize")
@@ -214,20 +215,14 @@ async def synthesize_speech(
             logger.error("Failed to get voice provider: %s", exc)
             raise OnyxError(OnyxErrorCode.INTERNAL_ERROR, str(exc)) from exc
 
-    import re
-    sentences = re.split(r'(?<=[.!?,\n])\s+', text)
-    text_chunks = [s.strip() for s in sentences if s.strip()]
-    if not text_chunks:
-        text_chunks = [text]
-
     # Pull the first chunk before returning the StreamingResponse. If the
     # provider rejects the request (e.g. text too long), the error surfaces
     # as a proper HTTP error instead of a broken audio stream.
-    first_stream_iter = provider.synthesize_stream(
-        text=text_chunks[0], voice=final_voice, speed=final_speed
+    stream_iter = provider.synthesize_stream(
+        text=text, voice=final_voice, speed=final_speed, speech_instruction=body.speech_instruction
     )
     try:
-        first_chunk = await first_stream_iter.__anext__()
+        first_chunk = await stream_iter.__anext__()
     except StopAsyncIteration:
         raise OnyxError(OnyxErrorCode.INTERNAL_ERROR, "TTS provider returned no audio")
     except Exception as exc:
@@ -239,23 +234,9 @@ async def synthesize_speech(
         yield first_chunk
         chunk_count = 1
         
-        # Finish yielding the first text chunk
-        async for chunk in first_stream_iter:
+        async for chunk in stream_iter:
             chunk_count += 1
             yield chunk
-            
-        # Yield the remaining text chunks sequentially
-        for i in range(1, len(text_chunks)):
-            try:
-                stream_iter = provider.synthesize_stream(
-                    text=text_chunks[i], voice=final_voice, speed=final_speed
-                )
-                async for chunk in stream_iter:
-                    chunk_count += 1
-                    yield chunk
-            except Exception as e:
-                logger.error(f"Error streaming TTS chunk {i}: {e}")
-                break
                 
         logger.info("TTS streaming complete: %s chunks sent", chunk_count)
 

@@ -43,6 +43,8 @@ class VoiceSessionManager:
         self.tts_provider = None
         self.tts_db = None
         self.voice_id = None
+        self.voice_speed = 1.0
+        self.speech_instruction = None
         
         self.vad = VoiceActivityDetector(energy_threshold=1000.0, silence_timeout_s=VOICE_SILENCE_TIMEOUT)
         self.audio_queue = asyncio.Queue()
@@ -72,13 +74,19 @@ class VoiceSessionManager:
         # Resolve Persona and custom voice if available
         if self.persona_id > 0:
             persona = get_persona_by_id(self.persona_id, user=self.user, db_session=self.db_session)
-            if persona:
+            if persona and persona.compiled_voice_profile:
+                self.voice_id = persona.compiled_voice_profile.get("voice_id", "default")
+                self.voice_speed = persona.compiled_voice_profile.get("speed", 1.0)
+                self.speech_instruction = persona.compiled_voice_profile.get("speech_instruction")
+            elif persona:
+                # Fallback to legacy fields if not compiled
                 self.voice_id = persona.reference_audio_id or persona.voice_id
                 if not self.voice_id and persona.voice_gender:
                     if persona.voice_gender.lower() == "male":
                         self.voice_id = "default_male"
                     elif persona.voice_gender.lower() == "female":
                         self.voice_id = "default_female"
+                self.voice_speed = 1.0
 
         stt_db = fetch_default_stt_provider(self.db_session)
         self.tts_db = fetch_default_tts_provider(self.db_session)
@@ -247,13 +255,14 @@ class VoiceSessionManager:
         
         try:
             voice = self.voice_id or self.tts_db.default_voice
-            speed = 1.0 
+            speed = self.voice_speed
             
             audio_stream = pipeline_llm_to_tts(
                 answer_stream=intercepted_stream,
                 synthesizer_func=self.tts_provider.synthesize_stream,
                 voice=voice,
-                speed=speed
+                speed=speed,
+                speech_instruction=self.speech_instruction
             )
             
             async for audio_chunk in audio_stream:

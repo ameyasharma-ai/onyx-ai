@@ -93,6 +93,11 @@ export interface MinimalAgent {
   rating_count?: number;
   favorite_count?: number;
   chat_count?: number;
+  
+  // Persona Brain
+  personality_config?: Record<string, any> | null;
+  speaking_style_config?: Record<string, any> | null;
+  compiled_voice_profile?: Record<string, any> | null;
 }
 
 export interface Agent extends MinimalAgent {
@@ -155,6 +160,10 @@ export interface AgentUpsertParameters {
   temperature?: number | null;
   category?: string | null;
   tags?: string[] | null;
+  
+  // Persona Brain
+  personality_config?: Record<string, any> | null;
+  speaking_style_config?: Record<string, any> | null;
 }
 
 export interface AgentUpsertRequest {
@@ -192,6 +201,10 @@ export interface AgentUpsertRequest {
   temperature: number | null;
   category?: string | null;
   tags?: string[] | null;
+  
+  // Persona Brain
+  personality_config?: Record<string, any> | null;
+  speaking_style_config?: Record<string, any> | null;
 }
 
 export interface PaginatedAgentsResponse {

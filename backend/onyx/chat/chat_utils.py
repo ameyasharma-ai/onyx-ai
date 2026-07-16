@@ -850,7 +850,7 @@ def get_custom_agent_prompt(persona: Persona, chat_session: ChatSession) -> str 
         # Logic exists later also to drop it in this case but this is strictly correct anyhow.
         if persona.replace_base_system_prompt:
             return None
-        return persona.system_prompt or None
+        return persona.compiled_persona_profile or persona.system_prompt or None
 
     # If in a project and using the default Agent, respect the project instructions.
     if chat_session.project and chat_session.project.instructions:

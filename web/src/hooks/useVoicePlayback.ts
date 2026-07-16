@@ -7,7 +7,7 @@ export interface UseVoicePlaybackReturn {
   isPlaying: boolean;
   isLoading: boolean;
   error: string | null;
-  play: (text: string, voice?: string, speed?: number) => Promise<void>;
+  play: (text: string, voice?: string, speed?: number, speech_instruction?: string) => Promise<void>;
   pause: () => void;
   stop: () => void;
 }
@@ -48,7 +48,7 @@ export function useVoicePlayback(): UseVoicePlaybackReturn {
   }, [stop]);
 
   const play = useCallback(
-    async (text: string, voice?: string, speed?: number) => {
+    async (text: string, voice?: string, speed?: number, speech_instruction?: string) => {
       stop();
       suppressPlayerErrorsRef.current = false;
       setError(null);
@@ -79,7 +79,7 @@ export function useVoicePlayback(): UseVoicePlaybackReturn {
         playerRef.current = player;
         player.setMuted(isTTSMuted);
 
-        await player.speak(cleanedText, voice, speed);
+        await player.speak(cleanedText, voice, speed, speech_instruction);
         setIsLoading(false);
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {

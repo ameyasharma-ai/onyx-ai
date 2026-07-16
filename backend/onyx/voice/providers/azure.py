@@ -523,7 +523,7 @@ class AzureVoiceProvider(VoiceProviderInterface):
         return display_text if isinstance(display_text, str) else ""
 
     async def synthesize_stream(
-        self, text: str, voice: str | None = None, speed: float = 1.0
+        self, text: str, voice: str | None = None, speed: float = 1.0, speech_instruction: str | None = None
     ) -> AsyncIterator[bytes]:
         """
         Convert text to audio using Azure TTS with streaming.
@@ -646,7 +646,7 @@ class AzureVoiceProvider(VoiceProviderInterface):
         return transcriber
 
     async def create_streaming_synthesizer(
-        self, voice: str | None = None, speed: float = 1.0
+        self, voice: str | None = None, speed: float = 1.0, speech_instruction: str | None = None
     ) -> AzureStreamingSynthesizer:
         """Create a streaming TTS session."""
         if not self.api_key:

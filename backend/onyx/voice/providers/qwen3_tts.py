@@ -67,7 +67,7 @@ class Qwen3TTSProvider(VoiceProviderInterface):
             return "default"
 
     async def synthesize_stream(
-        self, text: str, voice: str | None, speed: float
+        self, text: str, voice: str | None, speed: float, speech_instruction: str | None = None
     ) -> AsyncGenerator[bytes, None]:
         import asyncio
 
@@ -87,6 +87,7 @@ class Qwen3TTSProvider(VoiceProviderInterface):
                     "text": text,
                     "voice": resolved_voice,
                     "speed": speed,
+                    "instruct": speech_instruction,
                 },
                 timeout=None,
             ) as response:
@@ -123,12 +124,13 @@ class Qwen3TTSProvider(VoiceProviderInterface):
     def create_streaming_transcriber(self) -> StreamingTranscriberProtocol:
         raise NotImplementedError("Qwen3-TTS does not support STT")
 
-    def create_streaming_synthesizer(self, voice: str | None, speed: float) -> StreamingSynthesizerProtocol:
+    async def create_streaming_synthesizer(self, voice: str | None, speed: float, speech_instruction: str | None = None) -> StreamingSynthesizerProtocol:
         class ChunkedStreamingSynthesizer(StreamingSynthesizerProtocol):
-            def __init__(self, provider: VoiceProviderInterface, voice_id: str | None, speed_val: float):
+            def __init__(self, provider: VoiceProviderInterface, voice_id: str | None, speed_val: float, instruction: str | None):
                 self.provider = provider
                 self.voice = voice_id
                 self.speed = speed_val
+                self.speech_instruction = instruction
                 self._text_buffer = ""
                 self._stream_queue = asyncio.Queue()
                 self._current_stream = None
@@ -139,9 +141,9 @@ class Qwen3TTSProvider(VoiceProviderInterface):
             async def send_text(self, text: str) -> None:
                 self._text_buffer += text
                 
-                # Use same smart chunking logic
+                # Use same smart chunking logic but with more natural speech boundaries
                 import re
-                raw_chunks = re.split(r'(?<=[.!?])(?:\s+|$)|(?<=\n)(?:\s+|$)', self._text_buffer)
+                raw_chunks = re.split(r'(?<=[.!?,\;:<>])(?:\s+|$)|(?<=\n)(?:\s+|$)', self._text_buffer)
                 
                 # We can't synthesize the VERY LAST chunk because the LLM might still be typing it.
                 # So we keep the last chunk in the buffer, and synthesize all complete previous chunks 
@@ -156,7 +158,7 @@ class Qwen3TTSProvider(VoiceProviderInterface):
                         complete_text += (" " if complete_text else "") + chunk.strip()
                 
                 if len(complete_text) >= 50:
-                    stream = self.provider.synthesize_stream(complete_text, self.voice, self.speed)
+                    stream = self.provider.synthesize_stream(complete_text, self.voice, self.speed, self.speech_instruction)
                     self._stream_queue.put_nowait(stream)
                     self._text_buffer = raw_chunks[-1].lstrip()
             
@@ -174,9 +176,11 @@ class Qwen3TTSProvider(VoiceProviderInterface):
                 
             async def flush(self) -> None:
                 if self._text_buffer.strip():
-                    stream = self.provider.synthesize_stream(self._text_buffer.strip(), self.voice, self.speed)
+                    stream = self.provider.synthesize_stream(
+                        self._text_buffer, self.voice, self.speed, self.speech_instruction
+                    )
                     self._stream_queue.put_nowait(stream)
-                    self._text_buffer = ""
+                self._text_buffer = ""
                 self._stream_queue.put_nowait(None) # Signal EOF
                 
             async def close(self) -> None:
@@ -184,7 +188,7 @@ class Qwen3TTSProvider(VoiceProviderInterface):
                 self._current_stream = None
                 self._text_buffer = ""
 
-        return ChunkedStreamingSynthesizer(self, voice, speed)
+        return ChunkedStreamingSynthesizer(self, voice, speed, speech_instruction)
 
     async def validate_credentials(self) -> None:
         async with httpx.AsyncClient() as client:

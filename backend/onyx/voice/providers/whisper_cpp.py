@@ -142,7 +142,7 @@ class WhisperCppProvider(VoiceProviderInterface):
                 return data.get("text", "").strip()
 
     async def synthesize_stream(
-        self, text: str, voice: str | None = None, speed: float = 1.0
+        self, text: str, voice: str | None = None, speed: float = 1.0, speech_instruction: str | None = None
     ) -> AsyncIterator[bytes]:
         """Not supported — Whisper.cpp is an STT-only provider."""
         raise NotImplementedError(

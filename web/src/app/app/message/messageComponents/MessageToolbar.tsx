@@ -123,6 +123,7 @@ export interface MessageToolbarProps {
   
   // Voice ID
   voice?: string | null;
+  speech_instruction?: string | null;
 }
 
 export default function MessageToolbar({
@@ -145,6 +146,7 @@ export default function MessageToolbar({
   citations,
   documentMap,
   voice,
+  speech_instruction,
 }: MessageToolbarProps) {
   // Document sidebar state - managed internally to reduce prop drilling
   const documentSidebarVisible = useDocumentSidebarVisible();
@@ -299,6 +301,7 @@ export default function MessageToolbar({
                   removeThinkingTokens(getTextContent(rawPackets)) as string
                 }
                 voice={voice ?? undefined}
+                speech_instruction={speech_instruction ?? undefined}
               />
             )}
 

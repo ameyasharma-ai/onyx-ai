@@ -757,7 +757,7 @@ class ElevenLabsVoiceProvider(VoiceProviderInterface):
                     return text
 
     async def synthesize_stream(
-        self, text: str, voice: str | None = None, speed: float = 1.0
+        self, text: str, voice: str | None = None, speed: float = 1.0, speech_instruction: str | None = None
     ) -> AsyncIterator[bytes]:
         """
         Convert text to audio using ElevenLabs TTS with streaming.
@@ -918,7 +918,7 @@ class ElevenLabsVoiceProvider(VoiceProviderInterface):
         return transcriber
 
     async def create_streaming_synthesizer(
-        self, voice: str | None = None, speed: float = 1.0
+        self, voice: str | None = None, speed: float = 1.0, speech_instruction: str | None = None
     ) -> ElevenLabsStreamingSynthesizer:
         """Create a streaming TTS session."""
         if not self.api_key:
