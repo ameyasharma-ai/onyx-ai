@@ -300,3 +300,36 @@ def celery_beat_heartbeat(self: Task, *, tenant_id: str) -> None:  # noqa: ARG00
     r.set(ONYX_CELERY_BEAT_HEARTBEAT_KEY, 1, ex=600)
     time_elapsed = time.monotonic() - time_start
     task_logger.info(f"celery_beat_heartbeat finished: elapsed={time_elapsed:.2f}")
+
+
+@shared_task(
+    name=OnyxCeleryTask.EXTRACT_MEM0_MEMORY,
+    soft_time_limit=LIGHT_SOFT_TIME_LIMIT,
+    time_limit=LIGHT_TIME_LIMIT,
+    max_retries=3,
+    bind=True,
+)
+def extract_mem0_memory_task(
+    self: Task,
+    user_id: str,
+    persona_id: int | None,
+    messages: list[dict],
+) -> bool:
+    """A lightweight task to extract memory into Mem0 using LLM asynchronously."""
+    from onyx.db.memory import get_mem0_client
+    
+    try:
+        mem0 = get_mem0_client()
+        
+        # Add to global user memory
+        mem0.add(messages, user_id=user_id)
+        
+        # Add to persona specific memory
+        if persona_id is not None:
+            mem0.add(messages, user_id=user_id, agent_id=str(persona_id))
+            
+        task_logger.debug(f"Successfully extracted Mem0 memories for user {user_id}")
+        return True
+    except Exception as e:
+        task_logger.error(f"Failed to extract Mem0 memory: {e}")
+        raise

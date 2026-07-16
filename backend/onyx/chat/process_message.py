@@ -805,7 +805,12 @@ def build_chat_turn(
     # Compute skip-clarification flag for deep research path (cheap, always available)
     skip_clarification = is_last_assistant_message_clarification(chat_history)
 
-    user_memory_context = get_memories(user, db_session)
+    user_memory_context = get_memories(
+        user=user, 
+        db_session=db_session, 
+        persona_id=persona.id, 
+        query=new_msg_req.message
+    )
 
     # This prompt may come from the Agent or Project. Fetched here (before run_llm_loop)
     # because the inner loop shouldn't need to access the DB-form chat history, but we
@@ -1907,6 +1912,36 @@ def llm_loop_completion_handle(
             llm=llm,
             compression_params=compression_params,
         )
+
+    # ── Mem0 Async Extraction ────────────────────────────────────────────────
+    user_msg_text = None
+    if len(updated_chat_history) >= 2:
+        user_msg = updated_chat_history[-2]
+        if user_msg.message_type == MessageType.USER:
+            user_msg_text = user_msg.message
+            
+    if user_msg_text and final_answer:
+        from onyx.background.celery.versioned_apps.client import app as client_app
+        from onyx.configs.constants import OnyxCeleryTask
+        from onyx.db.models import ChatSession
+        
+        with get_session_with_current_tenant() as db_session:
+            chat_session = db_session.get(ChatSession, chat_session_id)
+            if chat_session and chat_session.user_id:
+                try:
+                    client_app.send_task(
+                        OnyxCeleryTask.EXTRACT_MEM0_MEMORY,
+                        kwargs=dict(
+                            user_id=str(chat_session.user_id),
+                            persona_id=chat_session.persona_id,
+                            messages=[
+                                {"role": "user", "content": user_msg_text},
+                                {"role": "assistant", "content": final_answer}
+                            ]
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to trigger Mem0 extraction task: {e}")
 
 
 _CITATION_LINK_START_PATTERN = re.compile(r"\s*\[\[\d+\]\]\(")

@@ -117,6 +117,7 @@ services:
       - file-system:/app/file-system
       # Bypass docker build crash by mounting fixed files directly
       - ../../backend/onyx/voice/pipeline.py:/app/onyx/voice/pipeline.py
+      - ../../backend/onyx/db/memory.py:/app/onyx/db/memory.py
       - ../../backend/onyx/server/manage/voice/live_session.py:/app/onyx/server/manage/voice/live_session.py
       - ../../backend/onyx/server/features/persona/api.py:/app/onyx/server/features/persona/api.py
       - ../../backend/onyx/chat/llm_loop.py:/app/onyx/chat/llm_loop.py
@@ -173,6 +174,7 @@ services:
       - file-system:/app/file-system
       # Bypass docker build crash by mounting fixed files directly
       - ../../backend/onyx/voice/pipeline.py:/app/onyx/voice/pipeline.py
+      - ../../backend/onyx/db/memory.py:/app/onyx/db/memory.py
       - ../../backend/onyx/server/manage/voice/live_session.py:/app/onyx/server/manage/voice/live_session.py
       - ../../backend/onyx/server/features/persona/api.py:/app/onyx/server/features/persona/api.py
       - ../../backend/onyx/chat/llm_loop.py:/app/onyx/chat/llm_loop.py
@@ -354,7 +356,7 @@ services:
 #       start_period: 600s
 # 
   relational_db:
-    image: ${BASE_IMAGE_REGISTRY:-docker.io}/library/postgres:15.2-alpine
+    image: pgvector/pgvector:pg15
     shm_size: 1g
     command: -c 'max_connections=250'
     env_file:
