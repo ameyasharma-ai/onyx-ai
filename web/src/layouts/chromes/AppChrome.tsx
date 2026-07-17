@@ -24,12 +24,12 @@ import {
 import { handleMoveOperation } from "@/lib/sidebar/svc";
 import { LOCAL_STORAGE_KEYS } from "@/lib/sidebar/constants";
 import { deleteChatSession } from "@/app/app/services/lib";
-import {
-  exportChatSession,
-  ChatExportFormat,
-} from "@/lib/chat/exportChatSession";
+import { exportChatSession, ChatExportFormat } from "@/lib/chat/exportChatSession";
 import { UNNAMED_CHAT } from "@/lib/constants";
 import { useRouter } from "next/navigation";
+import useSWR from "swr";
+import { Agent } from "@/lib/agents/types";
+import { errorHandlingFetcher } from "@/lib/fetcher";
 import MoveCustomAgentChatModal from "@/sections/modals/MoveCustomAgentChatModal";
 import ConfirmationModalLayout from "@/refresh-components/layouts/ConfirmationModalLayout";
 import FrostedDiv from "@/refresh-components/FrostedDiv";
@@ -58,6 +58,7 @@ import {
   SvgSearchMenu,
   SvgShare,
   SvgSidebar,
+  SvgStar,
   SvgTrash,
 } from "@opal/icons";
 import { useIsSearchModeAvailable, useSettings } from "@/lib/settings/hooks";
@@ -95,6 +96,7 @@ function Header() {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [popoverItems, setPopoverItems] = useState<React.ReactNode[]>([]);
   const [modePopoverOpen, setModePopoverOpen] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
   const {
     projects,
     fetchProjects,
@@ -108,6 +110,23 @@ function Header() {
   const customHeaderContent = settings.enterprise?.custom_header_content;
   const pageWithHeaderContent =
     appFocus.isChat() || appFocus.isNewSession() || appFocus.isAgent();
+
+  const agentId = appFocus.isAgent() 
+    ? appFocus.getId() 
+    : (appFocus.isChat() && currentChatSession?.persona_id) 
+      ? currentChatSession.persona_id 
+      : null;
+
+  const { data: agent, mutate: mutateAgent } = useSWR<Agent>(
+    agentId ? `/api/persona/${agentId}` : null,
+    errorHandlingFetcher
+  );
+
+  useEffect(() => {
+    if (agent?.is_favorite !== undefined && agent.is_favorite !== null) {
+      setIsFavorited(agent.is_favorite);
+    }
+  }, [agent?.is_favorite]);
 
   const effectiveMode: AppMode =
     appFocus.isNewSession() && state.phase === "idle" ? state.appMode : "chat";
@@ -172,6 +191,22 @@ function Header() {
     },
     [currentChatSession, performMove]
   );
+
+  const handleToggleFavorite = useCallback(async () => {
+    if (!agentId) return;
+    try {
+      const response = await fetch(`/api/persona/${agentId}/favorite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (response.ok) {
+        setIsFavorited((prev) => !prev);
+        mutateAgent();
+      }
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
+    }
+  }, [agentId, mutateAgent]);
 
   const handleDeleteChat = useCallback(async () => {
     if (!currentChatSession) return;
@@ -448,6 +483,11 @@ function Header() {
                     <Text color="text-03">{customHeaderContent}</Text>
                   </span>
                 )}
+                {isMobile && agentId && agent && (
+                  <span className="text-center w-full font-medium text-text-700 truncate px-2">
+                    {agent.name}
+                  </span>
+                )}
               </div>
 
               {/*
@@ -455,9 +495,49 @@ function Header() {
           - share button
           - more-options buttons
         */}
-              <div className="flex flex-1 justify-end items-center">
+              <div className="flex flex-1 justify-end items-center gap-2">
+                {!isMobile && agentId && agent && (
+                  <div className="mr-2 hidden sm:flex items-center">
+                    <span className="text-sm font-medium text-text-500 truncate max-w-[200px]">
+                      {agent.name}
+                    </span>
+                  </div>
+                )}
                 {appFocus.isChat() && currentChatSession && (
                   <FrostedDiv className="flex shrink flex-row items-center">
+                    {agentId && (
+                      <Button
+                        icon={
+                          isFavorited
+                            ? (props) => (
+                                <svg
+                                  width={props.size}
+                                  height={props.size}
+                                  viewBox="0 0 16 16"
+                                  fill="currentColor"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  {...props}
+                                >
+                                  <path d="M7.99999 1.33331L10.06 5.50665L14.6667 6.17998L11.3333 9.42665L12.12 14.0133L7.99999 11.8466L3.87999 14.0133L4.66666 9.42665L1.33333 6.17998L5.93999 5.50665L7.99999 1.33331Z" />
+                                </svg>
+                              )
+                            : SvgStar
+                        }
+                        prominence="tertiary"
+                        color={isFavorited ? "warning" : undefined}
+                        tooltip={isFavorited ? "Remove from Library" : "Add to Library"}
+                        onClick={handleToggleFavorite}
+                        aria-label="favorite-persona-button"
+                      />
+                    )}
+                    <Button
+                      icon={SvgTrash}
+                      prominence="tertiary"
+                      color="danger"
+                      tooltip="Delete Chat"
+                      onClick={() => setDeleteConfirmationModalOpen(true)}
+                      aria-label="delete-chat-button"
+                    />
                     <Button
                       icon={SvgShare}
                       prominence="tertiary"

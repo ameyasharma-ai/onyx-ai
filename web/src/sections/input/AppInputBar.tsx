@@ -18,6 +18,7 @@ import useCCPairs from "@/hooks/useCCPairs";
 import { MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { ChatState, MAX_QUEUED_MESSAGES } from "@/app/app/interfaces";
 import { useQueuedMessageNavigation } from "@/hooks/useQueuedMessageNavigation";
+import { useAvailableTools } from "@/hooks/useAvailableTools";
 import { useForcedTools } from "@/lib/hooks/useForcedTools";
 import useAppFocus from "@/hooks/useAppFocus";
 import { useDraft, draftKey } from "@/hooks/useDraft";
@@ -100,6 +101,8 @@ export interface AppInputBarProps {
   tabReadingEnabled?: boolean;
   currentTabUrl?: string | null;
   onToggleTabReading?: () => void;
+  initialLiveMode?: boolean;
+  onLiveVoiceClose?: () => void;
 }
 
 const AppInputBar = React.memo(
@@ -125,11 +128,14 @@ const AppInputBar = React.memo(
     tabReadingEnabled,
     currentTabUrl,
     onToggleTabReading,
+    initialLiveMode = false,
+    onLiveVoiceClose,
   }: AppInputBarProps) => {
     const [isRecording, setIsRecording] = useState(false);
-    const [showLiveVoice, setShowLiveVoice] = useState(false);
+    const [showLiveVoice, setShowLiveVoice] = useState(initialLiveMode);
     const [disableThinking, setDisableThinking] = useState(false);
     const [recordingCycleCount, setRecordingCycleCount] = useState(0);
+    const { tools: allTools } = useAvailableTools();
     const [isMuted, setIsMuted] = useState(false);
     const [audioLevel, setAudioLevel] = useState(0);
     const stopRecordingRef = useRef<(() => Promise<string | null>) | null>(
@@ -557,10 +563,10 @@ const AppInputBar = React.memo(
       return (
         !isProjectWorkflow &&
         deepResearchGloballyEnabled &&
-        hasSearchToolsAvailable(selectedAgent?.tools || [])
+        hasSearchToolsAvailable(allTools || [])
       );
     }, [
-      selectedAgent?.tools,
+      allTools,
       combinedSettingsData?.deep_research_enabled,
       currentProjectId,
     ]);
@@ -656,9 +662,9 @@ const AppInputBar = React.memo(
               controlsLoading && "invisible"
             )}
           >
-            {selectedAgent && selectedAgent.tools.length > 0 && (
+            {selectedAgent && allTools.length > 0 && (
               <ActionsPopover
-                selectedAgent={selectedAgent}
+                selectedAgent={{ ...selectedAgent, tools: allTools }}
                 filterManager={filterManager}
                 availableSources={memoizedAvailableSources}
                 disabled={disabled}
@@ -706,7 +712,7 @@ const AppInputBar = React.memo(
             {selectedAgent &&
               forcedToolIds.length > 0 &&
               forcedToolIds.map((toolId) => {
-                const tool = selectedAgent.tools.find(
+                const tool = allTools.find(
                   (tool) => tool.id === toolId
                 );
                 if (!tool) {
@@ -961,7 +967,9 @@ const AppInputBar = React.memo(
                               ? "Onyx is speaking..."
                               : isSearchMode
                                 ? "Search connected sources"
-                                : "How can I help you today?"
+                                : selectedAgent?.name
+                                  ? `Message ${selectedAgent.name}${selectedAgent.owner?.personal_name ? ` (by ${selectedAgent.owner.personal_name})` : ""}...`
+                                  : "How can I help you today?"
                       }
                       data-empty={!message ? "" : undefined}
                       onKeyDown={(event) => {
@@ -1104,7 +1112,12 @@ const AppInputBar = React.memo(
         {showLiveVoice && (
           <LiveVoiceUI 
             chatSessionId={chatSessionId ?? undefined} 
-            onClose={() => setShowLiveVoice(false)} 
+            onClose={() => {
+              setShowLiveVoice(false);
+              onLiveVoiceClose?.();
+            }} 
+            disableThinking={disableThinking}
+            onDisableThinkingChange={setDisableThinking}
           />
         )}
       </>

@@ -93,6 +93,7 @@ export interface MinimalAgent {
   rating_count?: number;
   favorite_count?: number;
   chat_count?: number;
+  is_favorite?: boolean | null;
   
   // Persona Brain
   personality_config?: Record<string, any> | null;

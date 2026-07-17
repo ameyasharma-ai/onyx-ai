@@ -62,7 +62,8 @@ import Suggestions from "@/sections/Suggestions";
 import OnboardingFlow from "@/sections/onboarding/OnboardingFlow";
 import { OnboardingStep } from "@/interfaces/onboarding";
 import { useShowOnboarding } from "@/hooks/useShowOnboarding";
-import { SvgChevronDown, SvgFileText } from "@opal/icons";
+import { SvgChevronDown, SvgFileText, SvgEdit } from "@opal/icons";
+import Link from "next/link";
 import { Button, Spacer } from "@opal/components";
 import { IllustrationContent, RootLayout } from "@opal/layouts";
 import { SvgNotFound, SvgNoAccess } from "@opal/illustrations";
@@ -478,6 +479,7 @@ export default function AppPage({ firstMessage }: ChatPageProps) {
     onMessageSelection,
     currentSessionFileTokenCount,
     sessionFetchError,
+    refreshSession,
   } = useChatSessionController({
     existingChatSessionId: currentChatSessionId,
     searchParams,
@@ -980,13 +982,21 @@ export default function AppPage({ firstMessage }: ChatPageProps) {
                         )}
                       />
                       {appFocus.isChat() && liveAgent && (
-                        <div className="pb-1">
+                        <div className="pb-1 flex justify-between items-end w-full">
                           <MultiModelSelector
                             selectedModels={multiModel.selectedModels}
                             onAdd={multiModel.addModel}
                             onRemove={multiModel.removeModel}
                             onReplace={multiModel.replaceModel}
                           />
+                          {(liveAgent.user_permission === "OWNER" || liveAgent.user_permission === "EDITOR") && (
+                            <Link 
+                              href={`/app/agents/edit/${liveAgent.id}`} 
+                              className="text-xs text-text-500 hover:text-text-700 flex items-center gap-1 mb-1 mr-1 transition-colors"
+                            >
+                              <SvgEdit className="w-3 h-3" /> Edit Persona
+                            </Link>
+                          )}
                         </div>
                       )}
                       <AppInputBar
@@ -1002,6 +1012,8 @@ export default function AppPage({ firstMessage }: ChatPageProps) {
                           searchParams?.get(SEARCH_PARAM_NAMES.USER_PROMPT) ||
                           ""
                         }
+                        initialLiveMode={searchParams?.get("live") === "true"}
+                        onLiveVoiceClose={refreshSession}
                         stopGenerating={stopGenerating}
                         onSubmit={handleAppInputBarSubmit}
                         chatState={currentChatState}

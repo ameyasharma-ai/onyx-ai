@@ -98,6 +98,15 @@ beat_task_templates: list[dict] = [
         },
     },
     {
+        "name": "cleanup-empty-chats",
+        "task": OnyxCeleryTask.CLEANUP_EMPTY_CHATS,
+        "schedule": timedelta(hours=1),
+        "options": {
+            "priority": OnyxCeleryPriority.LOW,
+            "expires": BEAT_EXPIRES_DEFAULT,
+        },
+    },
+    {
         "name": "check-for-index-attempt-cleanup",
         "task": OnyxCeleryTask.CHECK_FOR_INDEX_ATTEMPT_CLEANUP,
         "schedule": timedelta(minutes=30),

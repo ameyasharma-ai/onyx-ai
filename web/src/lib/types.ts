@@ -126,6 +126,7 @@ export interface User {
   password_configured?: boolean;
   tenant_info?: TenantInfo | null;
   personalization?: UserPersonalization;
+  profile_photo_id?: string | null;
 }
 
 export interface TenantInfo {
@@ -161,6 +162,8 @@ export interface InvitedUserSnapshot {
 export interface MinimalUserSnapshot {
   id: string;
   email: string;
+  personal_name?: string | null;
+  profile_photo_id?: string | null;
 }
 
 export type ValidInputTypes =

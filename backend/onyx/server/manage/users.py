@@ -17,6 +17,7 @@ from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Query
 from fastapi import Request
+from fastapi import UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -46,6 +47,7 @@ from onyx.configs.app_configs import REDIS_AUTH_KEY_PREFIX
 from onyx.configs.app_configs import SESSION_EXPIRE_TIME_SECONDS
 from onyx.configs.app_configs import USER_AUTH_SECRET
 from onyx.configs.constants import FASTAPI_USERS_AUTH_COOKIE_NAME
+from onyx.configs.constants import FileOrigin
 from onyx.configs.constants import PUBLIC_API_TAGS
 from onyx.db.api_key import is_api_key_email_address
 from onyx.db.auth import get_live_users_count
@@ -89,6 +91,8 @@ from onyx.db.users import get_user_counts_by_role_and_status
 from onyx.db.users import validate_user_role_update
 from onyx.error_handling.error_codes import OnyxErrorCode
 from onyx.error_handling.exceptions import OnyxError
+from onyx.file_store.file_store import get_default_file_store
+from onyx.file_store.models import ChatFileType
 from onyx.key_value_store.factory import get_kv_store
 from onyx.redis.redis_pool import get_raw_redis_client
 from onyx.redis.redis_pool import get_redis_client
@@ -1326,3 +1330,24 @@ def get_recent_files(
     )
 
     return [UserFileSnapshot.from_model(user_file) for user_file in user_files]
+
+
+@router.post("/manage/upload-profile-photo")
+def upload_profile_photo(
+    file: UploadFile,
+    user: User = Depends(require_permission(Permission.BASIC_ACCESS)),
+    db_session: Session = Depends(get_session),
+) -> dict[str, str]:
+    file_store = get_default_file_store()
+    file_type = ChatFileType.IMAGE
+    file_id = file_store.save_file(
+        content=file.file,
+        display_name=file.filename,
+        file_origin=FileOrigin.CHAT_UPLOAD,
+        file_type=file.content_type or file_type.value,
+    )
+    db_session.query(User).filter(User.id == user.id).update(
+        {User.profile_photo_id: file_id}
+    )
+    db_session.commit()
+    return {"file_id": file_id}

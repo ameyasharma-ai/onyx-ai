@@ -9,7 +9,17 @@ import { mutate } from "swr";
 import AgentAvatar from "@/refresh-components/avatars/AgentAvatar";
 import { useCurrentAgent } from "@/lib/agents/hooks";
 
-export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string, onClose?: () => void }) => {
+export const LiveVoiceUI = ({ 
+  chatSessionId, 
+  onClose,
+  disableThinking: externalDisableThinking = false,
+  onDisableThinkingChange
+}: { 
+  chatSessionId?: string, 
+  onClose?: () => void,
+  disableThinking?: boolean,
+  onDisableThinkingChange?: (val: boolean) => void
+}) => {
   const router = useRouter();
   const [client, setClient] = useState<LiveSessionClient | null>(null);
   const [state, setState] = useState<"disconnected" | "listening" | "thinking" | "speaking" | "idle">("disconnected");
@@ -21,8 +31,17 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [disableThinking, setDisableThinking] = useState(false);
+  const [disableThinking, setDisableThinking] = useState(externalDisableThinking);
   const currentAgent = useCurrentAgent();
+
+  useEffect(() => {
+    setDisableThinking(externalDisableThinking);
+  }, [externalDisableThinking]);
+
+  const handleDisableThinkingToggle = (val: boolean) => {
+    setDisableThinking(val);
+    onDisableThinkingChange?.(val);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -120,23 +139,16 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
             handleDisconnect();
             if (createdChatId) {
               if (onClose) onClose();
-              setTimeout(() => {
-                window.location.assign(`/app?chatId=${createdChatId}`);
-              }, 750);
+              window.location.href = `/app?chatId=${createdChatId}`;
               return;
             } else if (chatSessionId) {
               if (onClose) onClose();
-              setTimeout(() => {
-                if (window.location.href.includes(chatSessionId)) {
-                  window.location.reload();
-                } else {
-                  window.location.assign(`/app?chatId=${chatSessionId}`);
-                }
-              }, 750);
+              window.location.reload();
               return;
             }
             if (onClose) {
               onClose();
+              window.location.reload();
             } else {
               router.push('/app');
             }
@@ -163,7 +175,7 @@ export const LiveVoiceUI = ({ chatSessionId, onClose }: { chatSessionId?: string
               
               <div 
                 className="flex items-center justify-between gap-4 cursor-pointer group"
-                onClick={() => setDisableThinking(!disableThinking)}
+                onClick={() => handleDisableThinkingToggle(!disableThinking)}
               >
                 <span className="text-sm text-white/70 group-hover:text-white transition-colors">
                   Disable "Thinking"

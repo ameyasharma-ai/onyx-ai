@@ -1890,13 +1890,22 @@ def get_explore_personas_paginated(
     sort_by: str,
     page_num: int,
     page_size: int,
+    tab: str = "all",
 ) -> tuple[list[Persona], int]:
     from sqlalchemy import desc
     stmt = select(Persona).where(Persona.deleted == False)
 
     # For now, let's just make exploration only show listed + public or user's own
     if user and not getattr(user, 'is_anonymous', False):
-        stmt = _add_user_filters(stmt=stmt, user=user, get_editable=False)
+        if tab == "my_personas":
+            stmt = stmt.where(Persona.user_id == user.id)
+        elif tab == "favorites":
+            from onyx.db.models import PersonaFavorite
+            stmt = stmt.join(PersonaFavorite, Persona.id == PersonaFavorite.persona_id).where(
+                PersonaFavorite.user_id == user.id
+            )
+        else:
+            stmt = _add_user_filters(stmt=stmt, user=user, get_editable=False)
     else:
         stmt = stmt.where(Persona.is_public == True, Persona.is_listed == True)
 

@@ -681,13 +681,6 @@ export default function AppSidebar() {
                   {projects.length === 0 && newProjectButton}
                 </SidebarLayouts.Section>
 
-                {/* Recents */}
-                <RecentsSection
-                  chatSessions={chatSessions.filter(s => s.persona_id === 0 || s.persona_id === null)}
-                  hasMore={hasMore}
-                  isLoadingMore={isLoadingMore}
-                  onLoadMore={loadMore}
-                />
               </DndContext>
             </>
           )}

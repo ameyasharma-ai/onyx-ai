@@ -25,6 +25,9 @@ from onyx.server.metrics.metrics_server import start_metrics_server
 from onyx.utils.logger import setup_logger
 from shared_configs.configs import MULTI_TENANT
 
+# Import tasks so they are registered with Celery
+import onyx.background.celery.tasks.cleanup_empty_chats  # noqa: F401
+
 logger = setup_logger()
 
 celery_app = Celery(__name__)

@@ -10,6 +10,7 @@ import AgentAvatar from "@/refresh-components/avatars/AgentAvatar";
 import Image from "next/image";
 import Link from "next/link";
 import { createChatSession } from "@/app/app/services/lib";
+import { cn } from "@opal/utils";
 
 interface PaginatedAgentResponse {
   items: MinimalAgent[];
@@ -21,13 +22,14 @@ export default function PersonaLibraryPage() {
   const [category, setCategory] = useState("all");
   const [sortBy, setSortBy] = useState("rating");
   const [page, setPage] = useState(0);
+  const [tab, setTab] = useState<"all" | "my_personas" | "favorites">("all");
   const router = useRouter();
   const appRouter = useAppRouter();
 
   const { data: categoriesData } = useSWR<string[]>("/api/persona/categories", errorHandlingFetcher);
   
-  const endpoint = `/api/persona/explore?query=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort_by=${sortBy}&page_num=${page}&page_size=20`;
-  const { data: agentsData, isLoading } = useSWR<PaginatedAgentResponse>(endpoint, errorHandlingFetcher);
+  const endpoint = `/api/persona/explore?query=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort_by=${sortBy}&page_num=${page}&page_size=20&tab=${tab}`;
+  const { data: agentsData, isLoading, mutate } = useSWR<PaginatedAgentResponse>(endpoint, errorHandlingFetcher);
 
   const handleRate = async (e: React.MouseEvent, agentId: number) => {
     e.stopPropagation();
@@ -37,10 +39,16 @@ export default function PersonaLibraryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rating: 5 })
       });
-      mutate(endpoint);
+      mutate();
     } catch (err) {
       console.error("Failed to rate persona", err);
     }
+  };
+
+  const handleFavorite = async (e: React.MouseEvent, personaId: number) => {
+    e.stopPropagation();
+    await fetch(`/api/persona/${personaId}/favorite`, { method: "POST" });
+    mutate();
   };
 
   const categories = categoriesData ? ["all", ...categoriesData] : ["all"];
@@ -62,6 +70,28 @@ export default function PersonaLibraryPage() {
       <p className="text-text-500 mb-8 text-lg">
         Discover and explore curated AI personas.
       </p>
+
+      {/* Tabs */}
+      <div className="flex gap-6 border-b border-border mb-6">
+        <button
+          className={cn("pb-3 px-1 font-semibold text-sm transition-colors border-b-2", tab === "all" ? "border-purple-600 text-purple-600" : "border-transparent text-text-500 hover:text-text-700")}
+          onClick={() => { setTab("all"); setPage(0); }}
+        >
+          All
+        </button>
+        <button
+          className={cn("pb-3 px-1 font-semibold text-sm transition-colors border-b-2", tab === "my_personas" ? "border-purple-600 text-purple-600" : "border-transparent text-text-500 hover:text-text-700")}
+          onClick={() => { setTab("my_personas"); setPage(0); }}
+        >
+          My Personas
+        </button>
+        <button
+          className={cn("pb-3 px-1 font-semibold text-sm transition-colors border-b-2", tab === "favorites" ? "border-purple-600 text-purple-600" : "border-transparent text-text-500 hover:text-text-700")}
+          onClick={() => { setTab("favorites"); setPage(0); }}
+        >
+          Favorites
+        </button>
+      </div>
 
       {/* Header Controls */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8 w-full">
@@ -163,9 +193,24 @@ export default function PersonaLibraryPage() {
                 )}
               </div>
               
-              <p className="text-sm text-text-500 line-clamp-3 mb-4 flex-1">
+              <p className="text-sm text-text-500 line-clamp-3 mb-3 flex-1">
                 {agent.description}
               </p>
+
+              {agent.owner && (
+                <div className="flex items-center gap-2 mb-4">
+                  {agent.owner.profile_photo_id ? (
+                    <img src={`/api/persona/image/${agent.owner.profile_photo_id}`} className="w-5 h-5 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-background-200 flex items-center justify-center text-text-500 font-bold text-[10px] select-none">
+                      {agent.owner.personal_name?.[0]?.toUpperCase() ?? agent.owner.email?.[0]?.toUpperCase() ?? "U"}
+                    </div>
+                  )}
+                  <span className="text-xs text-text-500 font-medium">
+                    By {agent.owner.personal_name || agent.owner.email}
+                  </span>
+                </div>
+              )}
               
               <div className="flex items-center justify-between text-xs mt-auto pt-4 border-t border-border">
                 <button 

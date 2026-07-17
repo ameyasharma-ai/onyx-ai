@@ -593,6 +593,7 @@ class OnyxCeleryTask:
     CHECK_FOR_CONNECTOR_DELETION = "check_for_connector_deletion_task"
     CHECK_FOR_VESPA_SYNC_TASK = "check_for_vespa_sync_task"
     CHECK_FOR_INDEXING = "check_for_indexing"
+    CLEANUP_EMPTY_CHATS = "cleanup_empty_chats_task"
     CHECK_FOR_PRUNING = "check_for_pruning"
     CHECK_FOR_HIERARCHY_FETCHING = "check_for_hierarchy_fetching"
     CHECK_FOR_DOC_PERMISSIONS_SYNC = "check_for_doc_permissions_sync"

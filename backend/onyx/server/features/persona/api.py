@@ -649,6 +649,7 @@ def explore_personas(
     query: str | None = None,
     category: str | None = None,
     sort_by: str = "rating",
+    tab: str = "all",
     page_num: int = 0,
     page_size: int = 20,
     user: User | None = Depends(current_chat_accessible_user),
@@ -662,6 +663,7 @@ def explore_personas(
         sort_by=sort_by,
         page_num=page_num,
         page_size=page_size,
+        tab=tab,
     )
     user_group_ids: set[int] = (
         get_user_group_ids_for_user(db_session, user.id) if user is not None else set()
@@ -728,6 +730,10 @@ def get_persona(
         snapshot.user_permission = get_persona_access_level(
             persona, user, user_group_ids
         )
+        from onyx.db.models import PersonaFavorite
+        snapshot.is_favorite = db_session.query(PersonaFavorite).filter_by(
+            user_id=user.id, persona_id=persona_id
+        ).first() is not None
     snapshot.admin_count = get_active_admin_count(db_session)
     snapshot.ownership_vacant = persona_ownership_is_vacant(persona)
     return snapshot
@@ -776,6 +782,32 @@ def get_persona_avatar(
         )
         raise OnyxError(OnyxErrorCode.NOT_FOUND, "Avatar not found")
 
+    etag = f'"{file_id}"'
+    cache_headers = {
+        "Cache-Control": "private, max-age=31536000, immutable",
+        "ETag": etag,
+        "Vary": "Cookie",
+    }
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=cache_headers)
+
+    file_store = get_default_file_store()
+    file_io = file_store.read_file(file_id, mode="b")
+    return StreamingResponse(
+        file_io, media_type=file_record.file_type, headers=cache_headers
+    )
+
+@basic_router.get("/image/{file_id}")
+def get_persona_image_by_id(
+    file_id: str,
+    request: Request,
+    user: User | None = Depends(require_permission(Permission.BASIC_ACCESS)),
+    db_session: Session = Depends(get_session),
+) -> Response:
+    file_record = get_filerecord_by_file_id_optional(file_id, db_session)
+    if not file_record or file_record.file_origin != FileOrigin.CHAT_UPLOAD:
+        raise OnyxError(OnyxErrorCode.NOT_FOUND, "Image not found")
+        
     etag = f'"{file_id}"'
     cache_headers = {
         "Cache-Control": "private, max-age=31536000, immutable",
@@ -896,7 +928,7 @@ def _fetch_persona_image(query: str) -> str | None:
                 )
                 return file_id
     except Exception as e:
-        logger.warning(f"Failed to fetch persona image: {e}")
+        logger.error(f"Failed to fetch persona image: {e}")
     return None
 
 def _generate_reference_audio(text: str, voice_profile: str) -> str | None:
@@ -962,11 +994,11 @@ Schema:
   "pb_complexity": "Vocabulary complexity (e.g. 'simple', 'advanced', 'academic').",
   "knowledge_cutoff_date": null,
   "icon_name": null,
-  "image_generation": false,
-  "web_search": false,
-  "open_url": false,
-  "code_interpreter": false,
-  "coding_agent": false
+  "image_generation": "Set to true if this persona should be able to generate images.",
+  "web_search": "Set to true if this persona should be able to search the live web.",
+  "open_url": "Set to true if this persona should be able to read specific URLs.",
+  "code_interpreter": "Set to true if this persona should be able to run code.",
+  "coding_agent": "Set to true if this persona should be a coding agent."
 }}
 """
     try:

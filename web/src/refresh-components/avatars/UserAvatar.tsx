@@ -19,6 +19,21 @@ export default function UserAvatar({
     userEmail
   );
 
+  if (user?.profile_photo_id) {
+    return (
+      <div
+        className="flex items-center justify-center rounded-full overflow-hidden bg-background-tint-01"
+        style={{ width: size, height: size }}
+      >
+        <img
+          src={`/api/chat/file/${user.profile_photo_id}`}
+          alt={`${userEmail} avatar`}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }
+
   if (!userInitials) {
     return (
       <div

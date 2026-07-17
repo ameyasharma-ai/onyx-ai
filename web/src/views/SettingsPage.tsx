@@ -366,8 +366,37 @@ function GeneralSettings() {
     updateUserPersonalization,
     updateUserThemePreference,
     updateUserChatBackground,
+    refreshUser,
   } = useUser();
   const { theme, setTheme, systemTheme } = useTheme();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/manage/upload-profile-photo", {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        await refreshUser();
+        toast.success("Profile photo updated");
+      } else {
+        toast.error("Failed to upload profile photo");
+      }
+    } catch (err) {
+      toast.error("Failed to upload profile photo");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const applyBackground = useCallback(
     async (bg: (typeof CHAT_BACKGROUND_OPTIONS)[number]) => {
@@ -469,6 +498,27 @@ function GeneralSettings() {
             width="full"
           />
           <Card>
+            <InputHorizontal
+              title="Profile Photo"
+              description="Your avatar in the chat."
+              center
+              withLabel
+              responsive
+            >
+              <div className="flex gap-4 items-center">
+                {user?.profile_photo_id ? (
+                  <img src={`/api/chat/file/${user.profile_photo_id}`} className="w-12 h-12 rounded-full object-cover" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-background-200 flex items-center justify-center text-text-500 font-bold text-lg select-none">
+                    {user?.email?.[0]?.toUpperCase() ?? "U"}
+                  </div>
+                )}
+                <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleAvatarUpload} />
+                <Button disabled={uploadingAvatar} onClick={() => fileInputRef.current?.click()}>
+                  {uploadingAvatar ? "Uploading..." : "Upload Photo"}
+                </Button>
+              </div>
+            </InputHorizontal>
             <InputHorizontal
               title="Full Name"
               description="We'll display this name in the app."

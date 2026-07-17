@@ -886,6 +886,10 @@ def build_chat_turn(
         and forced_tool_id == search_tool_id
     ):
         forced_tool_id = None
+        
+    if forced_tool_id is not None and new_msg_req.allowed_tool_ids is not None:
+        if forced_tool_id not in new_msg_req.allowed_tool_ids:
+            new_msg_req.allowed_tool_ids.append(forced_tool_id)
 
     # TODO(nmgarza5): Once summarization is done, we don't need to load all files from the beginning.
     # Load all files needed for this chat chain into memory.

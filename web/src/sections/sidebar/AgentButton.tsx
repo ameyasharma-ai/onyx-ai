@@ -7,6 +7,10 @@ import { SidebarTab } from "@opal/components";
 import AgentAvatar from "@/refresh-components/avatars/AgentAvatar";
 import { ChatSession } from "@/app/app/interfaces";
 
+import { createChatSession } from "@/app/app/services/lib";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
 export interface AgentButtonProps {
   agent: MinimalAgent;
   chatSessions?: ChatSession[];
@@ -17,9 +21,29 @@ export interface AgentButtonProps {
 const AgentButton = memo(({ agent, chatSessions, isPinned, onTogglePin }: AgentButtonProps) => {
   const currentAgent = useCurrentAgent();
   const isCurrentAgent = currentAgent?.id === agent.id;
+  const router = useRouter();
+  const [isCreating, setIsCreating] = useState(false);
 
   const latestSession = chatSessions?.find((s) => s.persona_id === agent.id);
-  const href = latestSession ? `/app?chatId=${latestSession.id}` : `/app?agentId=${agent.id}`;
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isCreating) return;
+    
+    if (latestSession) {
+      router.push(`/app?chatId=${latestSession.id}`);
+    } else {
+      setIsCreating(true);
+      try {
+        const chatId = await createChatSession(agent.id, null, null);
+        router.push(`/app?chatId=${chatId}`);
+      } catch (err) {
+        console.error("Failed to create chat session:", err);
+        router.push(`/app?agentId=${agent.id}`);
+      }
+      setIsCreating(false);
+    }
+  };
 
   return (
     <div className="flex flex-row items-center w-full group gap-2 pr-2">
@@ -27,7 +51,8 @@ const AgentButton = memo(({ agent, chatSessions, isPinned, onTogglePin }: AgentB
         <SidebarTab
           key={agent.id}
           icon={() => <AgentAvatar agent={agent} />}
-          href={href}
+          onClick={handleClick}
+          type="button"
           selected={isCurrentAgent}
         >
           <div className="flex-1 min-w-0 pr-2">

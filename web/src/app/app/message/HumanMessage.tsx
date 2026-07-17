@@ -12,6 +12,7 @@ import { Button } from "@opal/components";
 import { SvgEdit } from "@opal/icons";
 import { Hoverable } from "@opal/core";
 import FileDisplay from "./FileDisplay";
+import { useUser } from "@/providers/UserProvider";
 
 interface MessageEditingProps {
   content: string;
@@ -140,6 +141,7 @@ const HumanMessage = React.memo(function HumanMessage({
 
   const [isEditing, setIsEditing] = useState(false);
   const { isMobile } = useScreenSize();
+  const { user } = useUser();
 
   // Use nodeId for switching (finding position in siblings)
   const indexInSiblings = otherMessagesCanSwitchTo?.indexOf(nodeId);
@@ -222,7 +224,7 @@ const HumanMessage = React.memo(function HumanMessage({
             onCancelEdit={() => setIsEditing(false)}
           />
         ) : (
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
             {!isMobile && copyEditButton}
             <div className="md:max-w-150">
               <div
@@ -249,6 +251,16 @@ const HumanMessage = React.memo(function HumanMessage({
                   {content}
                 </Text>
               </div>
+            </div>
+            {/* User Avatar */}
+            <div className="flex-shrink-0 pt-0.5">
+              {user?.profile_photo_id ? (
+                <img src={`/api/chat/file/${user.profile_photo_id}`} className="w-8 h-8 rounded-full object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-background-200 flex items-center justify-center text-text-500 font-bold text-sm select-none">
+                  {user?.email?.[0]?.toUpperCase() ?? "U"}
+                </div>
+              )}
             </div>
           </div>
         )}

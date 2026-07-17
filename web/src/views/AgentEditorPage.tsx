@@ -183,8 +183,10 @@ function AgentIconEditor({ existingAgent }: AgentIconEditorProps) {
 
   const imageSrc = uploadedImagePreview
     ? uploadedImagePreview
-    : values.uploaded_image_id && existingAgent?.id != null
-      ? buildAgentAvatarUrl(existingAgent.id)
+    : values.uploaded_image_id
+      ? values.uploaded_image_id === existingAgent?.uploaded_image_id && existingAgent?.id != null
+        ? buildAgentAvatarUrl(existingAgent.id)
+        : `/api/persona/image/${values.uploaded_image_id}`
       : values.icon_name
         ? undefined
         : values.remove_image

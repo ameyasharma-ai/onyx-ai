@@ -236,6 +236,14 @@ def user_can_access_chat_file(file_id: str, user: User, db_session: Session) -> 
     ).scalar()
     if owns_user_file:
         return True
+        
+    is_profile_photo = db_session.query(
+        select(User.id)
+        .where(User.profile_photo_id == file_id)
+        .exists()
+    ).scalar()
+    if is_profile_photo:
+        return True
 
     if _user_can_access_persona_attached_file(file_id, user, db_session):
         return True

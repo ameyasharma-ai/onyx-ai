@@ -154,6 +154,7 @@ class UserInfo(BaseModel):
     is_anonymous_user: bool | None = None
     password_configured: bool | None = None
     tenant_info: TenantInfo | None = None
+    profile_photo_id: str | None = None
 
     @classmethod
     def from_model(
@@ -210,6 +211,7 @@ class UserInfo(BaseModel):
                 memories=memories or [],
                 user_preferences=user.user_preferences or "",
             ),
+            profile_photo_id=user.profile_photo_id,
         )
 
 

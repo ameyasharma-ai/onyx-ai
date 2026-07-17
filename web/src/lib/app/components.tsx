@@ -27,10 +27,22 @@ export function Logo({ folded, size, className, onyxBranded }: LogoProps) {
 
   if (onyxBranded) {
     return folded ? (
-      <SvgOnyxLogo size={resolvedSize} className={cn("shrink-0", className)} />
+      <img
+        alt="Logo"
+        src="/new_logo_1.svg"
+        width={resolvedSize}
+        height={resolvedSize}
+        className={cn("shrink-0 object-contain", className)}
+      />
     ) : (
       <div className={cn("flex items-center gap-2", className)}>
-        <SvgOnyxLogo size={resolvedSize} className="shrink-0" />
+        <img
+          alt="Logo"
+          src="/new_logo_1.svg"
+          width={resolvedSize}
+          height={resolvedSize}
+          className="shrink-0 object-contain"
+        />
         <span className="text-xl font-bold tracking-tight">PersonaLabs</span>
       </div>
     );
@@ -52,7 +64,13 @@ export function Logo({ folded, size, className, onyxBranded }: LogoProps) {
       />
     </div>
   ) : (
-    <SvgOnyxLogo size={resolvedSize} className={cn("shrink-0", className)} />
+    <img
+      alt="Logo"
+      src="/new_logo_1.svg"
+      width={resolvedSize}
+      height={resolvedSize}
+      className={cn("shrink-0 object-contain", className)}
+    />
   );
 
   const renderNameAndPoweredBy = (opts: {
@@ -99,10 +117,22 @@ export function Logo({ folded, size, className, onyxBranded }: LogoProps) {
   return applicationName ? (
     renderNameAndPoweredBy({ includeLogo: true, includeName: true })
   ) : folded ? (
-    <SvgOnyxLogo size={resolvedSize} className={cn("shrink-0", className)} />
+    <img
+      alt="Logo"
+      src="/new_logo_1.svg"
+      width={resolvedSize}
+      height={resolvedSize}
+      className={cn("shrink-0 object-contain", className)}
+    />
   ) : (
     <div className={cn("flex items-center gap-2", className)}>
-      <SvgOnyxLogo size={resolvedSize} className="shrink-0" />
+      <img
+        alt="Logo"
+        src="/new_logo_1.svg"
+        width={resolvedSize}
+        height={resolvedSize}
+        className="shrink-0 object-contain"
+      />
       <span className="text-xl font-bold tracking-tight text-text-900">PersonaLabs</span>
     </div>
   );

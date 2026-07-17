@@ -96,6 +96,7 @@ export default function useChatSessionController({
   const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
   const [sessionFetchError, setSessionFetchError] =
     useState<SessionFetchError>(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
   // Store actions
   const updateSessionAndMessageTree = useChatSessionStore(
     (state) => state.updateSessionAndMessageTree
@@ -485,6 +486,7 @@ export default function useChatSessionController({
   }, [
     existingChatSessionId,
     searchParams?.get(SEARCH_PARAM_NAMES.PERSONA_ID),
+    refreshCounter,
     // Note: We're intentionally not including all dependencies to avoid infinite loops
     // This effect should only run when existingChatSessionId or persona ID changes
   ]);
@@ -525,5 +527,6 @@ export default function useChatSessionController({
     onMessageSelection,
     projectFiles,
     sessionFetchError,
+    refreshSession: () => setRefreshCounter((c) => c + 1),
   };
 }

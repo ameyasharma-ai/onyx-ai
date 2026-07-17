@@ -370,6 +370,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         Boolean, nullable=False, default=True
     )
     user_preferences: Mapped[str | None] = mapped_column(Text, nullable=True)
+    profile_photo_id: Mapped[str | None] = mapped_column(String, nullable=True)
 
     chosen_assistants: Mapped[list[int] | None] = mapped_column(
         postgresql.JSONB(), nullable=True, default=None

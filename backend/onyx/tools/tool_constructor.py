@@ -21,7 +21,7 @@ from onyx.db.models import Persona
 from onyx.db.models import User
 from onyx.db.oauth_config import get_oauth_config
 from onyx.db.search_settings import get_current_search_settings
-from onyx.db.tools import get_builtin_tool
+from onyx.db.tools import get_builtin_tool, get_tools
 from onyx.document_index.factory import get_default_document_index
 from onyx.image_gen.interfaces import ImageGenerationProviderCredentials
 from onyx.llm.interfaces import LLM
@@ -212,13 +212,19 @@ def _construct_tools_impl(
         )
 
     added_search_tool = False
-    for db_tool_model in persona.tools:
+    for db_tool_model in get_tools(db_session):
         # If allowed_tool_ids is specified, skip tools not in the allowed list
         if allowed_tool_ids is not None and db_tool_model.id not in allowed_tool_ids:
             continue
 
         if db_tool_model.in_code_tool_id:
-            tool_cls = get_built_in_tool_by_id(db_tool_model.in_code_tool_id)
+            try:
+                tool_cls = get_built_in_tool_by_id(db_tool_model.in_code_tool_id)
+            except KeyError:
+                logger.warning(
+                    f"Tool {db_tool_model.in_code_tool_id} found in DB but not in code."
+                )
+                continue
 
             try:
                 tool_is_available = tool_cls.is_available(db_session)

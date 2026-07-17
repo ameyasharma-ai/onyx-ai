@@ -30,6 +30,8 @@ class IdReturn(BaseModel):
 class MinimalUserSnapshot(BaseModel):
     id: UUID
     email: str
+    personal_name: str | None = None
+    profile_photo_id: str | None = None
 
 
 class UserGroupInfo(BaseModel):

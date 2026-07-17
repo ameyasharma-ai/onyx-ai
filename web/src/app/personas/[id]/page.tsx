@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { errorHandlingFetcher } from "@/lib/fetcher";
 import useSWR from "swr";
 import { Agent } from "@/lib/agents/types";
+import { createChatSession } from "@/app/app/services/lib";
 
 export default function PersonaProfilePage() {
   const params = useParams();
@@ -48,13 +49,44 @@ export default function PersonaProfilePage() {
     );
   }
 
-  const startChat = () => {
-    router.push(`/app?agentId=${id}`);
+  const startChat = async () => {
+    try {
+      const res = await fetch("/api/chat/get-user-chat-sessions");
+      if (res.ok) {
+        const data = await res.json();
+        const existingSession = data.sessions?.find((s: any) => s.persona_id === agent.id);
+        if (existingSession) {
+          router.push(`/app?chatId=${existingSession.id}`);
+          return;
+        }
+      }
+      const chatId = await createChatSession(agent.id, null, null);
+      router.push(`/app?chatId=${chatId}`);
+    } catch (e) {
+      console.error("Failed to create chat session:", e);
+      router.push(`/app?agentId=${id}`);
+    }
   };
 
-  const startLiveMode = () => {
-    // Navigate with a specific query parameter that might trigger live mode directly in the App
-    router.push(`/app?agentId=${id}&live=true`);
+  const startLiveMode = async () => {
+    try {
+      const res = await fetch("/api/chat/get-user-chat-sessions");
+      let chatIdToUse = null;
+      if (res.ok) {
+        const data = await res.json();
+        const existingSession = data.sessions?.find((s: any) => s.persona_id === agent.id);
+        if (existingSession) {
+          chatIdToUse = existingSession.id;
+        }
+      }
+      if (!chatIdToUse) {
+        chatIdToUse = await createChatSession(agent.id, null, null);
+      }
+      router.push(`/app?chatId=${chatIdToUse}&live=true`);
+    } catch (e) {
+      console.error("Failed to create chat session for live mode:", e);
+      router.push(`/app?agentId=${id}&live=true`);
+    }
   };
 
   return (
