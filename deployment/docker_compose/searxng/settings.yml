@@ -1,0 +1,13 @@
+# SearXNG settings for PersonaLabs
+# Docs: https://docs.searxng.org/admin/settings/settings.html
+use_default_settings: true
+
+server:
+  # Disable rate-limiter so Docker-internal requests from api_server are not blocked
+  limiter: false
+  secret_key: "personallabs-searxng-secret-change-in-production"
+
+search:
+  formats:
+    - html
+    - json

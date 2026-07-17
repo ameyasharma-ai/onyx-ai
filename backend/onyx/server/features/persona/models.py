@@ -30,6 +30,36 @@ class PersonaUserShare(BaseModel):
     permission: PersonaSharePermission
 
 
+class PersonaAutoGenerateRequest(BaseModel):
+    name: str
+    description: str | None = None
+
+
+class PersonaAutoGenerateResponse(BaseModel):
+    description: str
+    voice_gender: str
+    instructions: str
+    pb_backstory: str
+    pb_traits: str
+    pb_goals: str
+    pb_tone: str
+    pb_voice_profile: str
+    starter_messages: list[str]
+    reminders: str
+    replace_base_system_prompt: bool
+    pb_filler_words: str
+    pb_complexity: str
+    knowledge_cutoff_date: str | None = None
+    icon_name: str | None = None
+    uploaded_image_id: str | None = None
+    reference_audio_id: str | None = None
+    image_generation: bool = False
+    web_search: bool = False
+    open_url: bool = False
+    code_interpreter: bool = False
+    coding_agent: bool = False
+
+
 class PersonaGroupShare(BaseModel):
     group_id: int
     group_name: str

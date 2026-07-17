@@ -293,14 +293,14 @@ export default function AdminSidebar() {
           </React.Fragment>
         ))}
 
-        {disabledGroups.length > 0 && (
+        {false && disabledGroups.length > 0 && (
           <>
             <Divider paddingPerpendicular="fit" />
             {/* Empty div here just to add spacing (via the `gap` property on `SidebarLayouts.Body`) */}
             <div />
           </>
         )}
-        {disabledGroups.map((group, groupIndex) => (
+        {false && disabledGroups.map((group, groupIndex) => (
           <React.Fragment key={`disabled-${groupIndex}`}>
             <SidebarLayouts.Section title={group.section ?? undefined} disabled>
               {group.items.map(({ link, icon, name, requiredTier }) => (

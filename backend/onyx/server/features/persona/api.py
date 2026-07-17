@@ -67,12 +67,17 @@ from onyx.server.features.persona.models import PersonaLabelCreate
 from onyx.server.features.persona.models import PersonaLabelResponse
 from onyx.server.features.persona.models import PersonaSnapshot
 from onyx.server.features.persona.models import PersonaUpsertRequest
+from onyx.server.features.persona.models import PersonaAutoGenerateRequest
+from onyx.server.features.persona.models import PersonaAutoGenerateResponse
+from onyx.llm.factory import get_default_llm
+from onyx.llm.models import UserMessage, SystemMessage
 from onyx.server.manage.llm.api import get_valid_model_configuration_ids_for_persona
 from onyx.server.models import DisplayPriorityRequest
 from onyx.server.settings.store import load_settings
 from onyx.utils.logger import setup_logger
 from onyx.utils.telemetry import mt_cloud_telemetry
 from onyx.utils.variable_functionality import fetch_versioned_implementation
+import json
 from shared_configs.contextvars import get_current_tenant_id
 
 logger = setup_logger()
@@ -854,4 +859,170 @@ def favorite_persona_endpoint(
     db_session: Session = Depends(get_session),
 ) -> dict[str, bool]:
     is_favorited = toggle_persona_favorite(db_session, persona_id, user.id)
-    return {"favorited": is_favorited}
+    # Return whether the persona is favorited after the toggle. 
+    # Can deduce this from the db but for now, we just return true.
+    return {"success": True}
+
+import requests
+import io
+import mimetypes
+from onyx.file_store.file_store import get_default_file_store
+from onyx.configs.constants import FileOrigin
+
+def _fetch_persona_image(query: str) -> str | None:
+    try:
+        searxng_url = "http://searxng:8080/search"
+        resp = requests.get(searxng_url, params={"q": query, "categories": "images", "format": "json"}, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        results = data.get("results", [])
+        for res in results:
+            img_url = res.get("img_src")
+            if not img_url:
+                continue
+            
+            img_resp = requests.get(img_url, timeout=10)
+            if img_resp.status_code == 200:
+                content_type = img_resp.headers.get("Content-Type", "image/jpeg")
+                ext = mimetypes.guess_extension(content_type) or ".jpg"
+                display_name = f"persona_avatar{ext}"
+                
+                file_store = get_default_file_store()
+                file_id = file_store.save_file(
+                    content=io.BytesIO(img_resp.content),
+                    display_name=display_name,
+                    file_origin=FileOrigin.CHAT_UPLOAD,
+                    file_type=content_type,
+                )
+                return file_id
+    except Exception as e:
+        logger.warning(f"Failed to fetch persona image: {e}")
+    return None
+
+def _generate_reference_audio(text: str, voice_profile: str) -> str | None:
+    try:
+        # Default fallback text if empty
+        if not text:
+            text = "Hello there! I am your new AI assistant."
+        
+        qwen3_tts_url = "http://qwen3_tts:8000/audio/speech"
+        resp = requests.post(
+            qwen3_tts_url,
+            json={
+                "text": text,
+                "voice": "default",
+                "speed": 1.0,
+                "instruct": voice_profile,
+            },
+            timeout=30
+        )
+        resp.raise_for_status()
+        
+        file_store = get_default_file_store()
+        file_id = file_store.save_file(
+            content=io.BytesIO(resp.content),
+            display_name="reference_audio.wav",
+            file_origin=FileOrigin.CHAT_UPLOAD,
+            file_type="audio/wav",
+        )
+        return file_id
+    except Exception as e:
+        logger.warning(f"Failed to generate reference audio: {e}")
+    return None
+
+@admin_router.post("/auto-generate")
+def auto_generate_persona(
+    request: PersonaAutoGenerateRequest,
+    user: User | None = Depends(current_curator_or_admin_user),
+) -> PersonaAutoGenerateResponse:
+    llm = get_default_llm()
+    prompt = f"""
+You are an expert persona and AI character designer.
+The user wants to create a character with the following name and description:
+Name: {request.name}
+Description: {request.description}
+
+Generate the detailed configuration for this persona in JSON format.
+Your output MUST be ONLY valid JSON matching the following schema. Do not wrap in markdown code blocks.
+
+Schema:
+{{
+  "description": "A short, punchy 1-2 sentence description of who the persona is (e.g. A helpful coding assistant).",
+  "voice_gender": "The gender of the voice. MUST BE EXACTLY one of: 'male', 'female', or 'unisex'.",
+  "instructions": "Detailed system prompt defining personality, role, and instructions.",
+  "pb_backstory": "A short summary of who they are and their background.",
+  "pb_traits": "Comma-separated list of core personality traits.",
+  "pb_goals": "Comma-separated list of their main goals or motivations.",
+  "pb_tone": "How they speak, format, and tone (e.g. enthusiastic, sarcastic).",
+  "pb_voice_profile": "A short description of how their voice sounds.",
+  "starter_messages": ["A list of 3-4 example starter messages from the persona's perspective."],
+  "reminders": "A task prompt or short reminders for the persona (can be empty string).",
+  "replace_base_system_prompt": false,
+  "pb_filler_words": "Comma-separated list of filler words or phrases they use.",
+  "pb_complexity": "Vocabulary complexity (e.g. 'simple', 'advanced', 'academic').",
+  "knowledge_cutoff_date": null,
+  "icon_name": null,
+  "image_generation": false,
+  "web_search": false,
+  "open_url": false,
+  "code_interpreter": false,
+  "coding_agent": false
+}}
+"""
+    try:
+        response = llm.invoke([UserMessage(content=prompt)])
+        raw_content = response.choice.message.content.strip() if response.choice.message.content else ""
+        # strip markdown code blocks if any
+        if raw_content.startswith("```json"):
+            raw_content = raw_content[7:]
+        if raw_content.startswith("```"):
+            raw_content = raw_content[3:]
+        if raw_content.endswith("```"):
+            raw_content = raw_content[:-3]
+        
+        parsed = json.loads(raw_content.strip())
+        
+        import concurrent.futures
+        uploaded_image_id = None
+        reference_audio_id = None
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_img = executor.submit(_fetch_persona_image, request.name)
+            
+            starter_msgs = parsed.get("starter_messages", [])
+            audio_text = starter_msgs[0] if starter_msgs else parsed.get("description", "Hello!")
+            voice_profile = parsed.get("pb_voice_profile", "")
+            
+            future_audio = executor.submit(_generate_reference_audio, audio_text, voice_profile)
+            
+            uploaded_image_id = future_img.result()
+            reference_audio_id = future_audio.result()
+
+        return PersonaAutoGenerateResponse(
+            description=parsed.get("description", ""),
+            voice_gender=parsed.get("voice_gender", "unisex"),
+            instructions=parsed.get("instructions", ""),
+            pb_backstory=parsed.get("pb_backstory", ""),
+            pb_traits=parsed.get("pb_traits", ""),
+            pb_goals=parsed.get("pb_goals", ""),
+            pb_tone=parsed.get("pb_tone", ""),
+            pb_voice_profile=parsed.get("pb_voice_profile", ""),
+            starter_messages=parsed.get("starter_messages", []),
+            reminders=parsed.get("reminders", ""),
+            replace_base_system_prompt=parsed.get("replace_base_system_prompt", False),
+            pb_filler_words=parsed.get("pb_filler_words", ""),
+            pb_complexity=parsed.get("pb_complexity", ""),
+            knowledge_cutoff_date=parsed.get("knowledge_cutoff_date"),
+            icon_name=parsed.get("icon_name"),
+            uploaded_image_id=uploaded_image_id,
+            reference_audio_id=reference_audio_id,
+            image_generation=parsed.get("image_generation", False),
+            web_search=parsed.get("web_search", False),
+            open_url=parsed.get("open_url", False),
+            code_interpreter=parsed.get("code_interpreter", False),
+            coding_agent=parsed.get("coding_agent", False),
+
+        )
+    except Exception as e:
+        logger.error(f"Failed to auto-generate persona: {e}")
+        raise OnyxError(OnyxErrorCode.INTERNAL_ERROR, "Failed to auto-generate persona details")

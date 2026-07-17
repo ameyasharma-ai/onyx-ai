@@ -585,6 +585,38 @@ services:
         max-size: "50m"
         max-file: "6"
 
+  searxng:
+    image: searxng/searxng:latest
+    container_name: onyx-searxng-1
+    restart: unless-stopped
+    # Exposed on 8888 on the host to avoid collision with api_server (which uses 8080)
+    # Access from host browser: http://localhost:8888
+    # Access from other containers: http://searxng:8080
+    ports:
+      - "8888:8080"
+    volumes:
+      # Bind-mount settings.yml so JSON format + limiter settings are applied
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+      # Named volume persists the auto-generated secret_key across restarts
+      - searxng_config:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=${SEARXNG_BASE_URL:-http://localhost:8888}
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "6"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   qwen3_tts:
     build:
       context: ./qwen3_tts
@@ -629,3 +661,5 @@ volumes:
   opensearch-data:
   # Whisper.cpp models
   whisper_models:
+  # SearXNG configuration persistence (secret_key survives restarts)
+  searxng_config:

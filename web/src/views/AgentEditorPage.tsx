@@ -649,6 +649,7 @@ export default function AgentEditorPage({
   // Labels are edited in the Share Persona section and saved with the form
   const { labels: allLabels, createLabel } = useLabels();
   const [labelInputValue, setLabelInputValue] = useState("");
+  const [isGeneratingPersona, setIsGeneratingPersona] = useState(false);
   const addAgentLabel = useCallback(
     async (
       name: string,
@@ -1281,6 +1282,63 @@ export default function AgentEditorPage({
           initialStatus={{ warnings: {} }}
         >
           {({ isSubmitting, isValid, dirty, values, setFieldValue }) => {
+            const handleAutoGenerate = async () => {
+              if (!values.name) return;
+              setIsGeneratingPersona(true);
+              try {
+                const res = await fetch("/api/admin/persona/auto-generate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name: values.name, description: values.description }),
+                });
+                if (!res.ok) {
+                  const errData = await res.json().catch(() => ({}));
+                  throw new Error(errData.detail || "Failed to generate persona");
+                }
+                const data = await res.json();
+                if (data.description) setFieldValue("description", data.description);
+                if (data.voice_gender) setFieldValue("voice_gender", data.voice_gender);
+                if (data.instructions) setFieldValue("instructions", data.instructions);
+                if (data.pb_backstory) setFieldValue("pb_backstory", data.pb_backstory);
+                if (data.pb_traits) setFieldValue("pb_traits", data.pb_traits);
+                if (data.pb_goals) setFieldValue("pb_goals", data.pb_goals);
+                if (data.pb_tone) setFieldValue("pb_tone", data.pb_tone);
+                if (data.pb_voice_profile) setFieldValue("pb_voice_profile", data.pb_voice_profile);
+                if (data.starter_messages && data.starter_messages.length > 0) {
+                  setFieldValue("starter_messages", data.starter_messages);
+                }
+                if (data.reminders !== undefined) setFieldValue("reminders", data.reminders);
+                if (data.replace_base_system_prompt !== undefined) setFieldValue("replace_base_system_prompt", data.replace_base_system_prompt);
+                if (data.pb_filler_words !== undefined) setFieldValue("pb_filler_words", data.pb_filler_words);
+                if (data.pb_complexity !== undefined) setFieldValue("pb_complexity", data.pb_complexity);
+                if (data.knowledge_cutoff_date !== undefined) setFieldValue("knowledge_cutoff_date", data.knowledge_cutoff_date);
+                if (data.icon_name !== undefined) setFieldValue("icon_name", data.icon_name);
+                if (data.uploaded_image_id !== undefined) {
+                  setFieldValue("uploaded_image_id", data.uploaded_image_id);
+                  setFieldValue("remove_image", false);
+                }
+                if (data.reference_audio_id !== undefined) setFieldValue("reference_audio_id", data.reference_audio_id);
+                if (data.image_generation !== undefined) setFieldValue("image_generation", isImageGenerationAvailable ? data.image_generation : false);
+                if (data.web_search !== undefined) setFieldValue("web_search", !!webSearchTool ? data.web_search : false);
+                if (data.open_url !== undefined) setFieldValue("open_url", !!openURLTool ? data.open_url : false);
+                if (data.code_interpreter !== undefined) setFieldValue("code_interpreter", !!codeInterpreterTool ? data.code_interpreter : false);
+                if (data.coding_agent !== undefined) setFieldValue("coding_agent", !!codingAgentTool ? data.coding_agent : false);
+                toast({
+                  message: "Persona Details Generated!",
+                  description: "Review the generated fields below.",
+                  level: "success",
+                });
+              } catch (e: any) {
+                toast({
+                  message: "Generation Failed",
+                  description: e.message || "An unexpected error occurred.",
+                  level: "error",
+                });
+              } finally {
+                setIsGeneratingPersona(false);
+              }
+            };
+
             // Keep the ref in sync so async upload callbacks read current ids.
             userFileIdsRef.current = values.user_file_ids;
 
@@ -1495,6 +1553,16 @@ export default function AgentEditorPage({
                               placeholder="Who is this persona? (e.g. A helpful coding assistant)"
                             />
                           </InputVertical>
+
+                          <Button
+                            type="button"
+                            onClick={handleAutoGenerate}
+                            disabled={!values.name || isGeneratingPersona}
+                            icon={isGeneratingPersona ? SvgSimpleLoader : undefined}
+                            prominence="secondary"
+                          >
+                            {isGeneratingPersona ? "Generating details..." : "Auto Generate Persona Details"}
+                          </Button>
                         </GeneralLayouts.Section>
 
                         <GeneralLayouts.Section width="fit">
