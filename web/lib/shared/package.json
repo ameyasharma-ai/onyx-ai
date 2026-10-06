@@ -48,7 +48,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "style-dictionary": "^5.5.0",
+    "style-dictionary": "^5.5.5",
     "typescript": "^5.9.3"
   }
 }
