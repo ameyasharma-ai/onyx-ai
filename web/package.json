@@ -124,7 +124,7 @@
     "@types/react": "19.2.10",
     "@types/react-dom": "19.2.3",
     "@types/stats.js": "^0.17.4",
-    "@typescript/native-preview": "^7.0.0-dev.20260424.2",
+    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
     "babel-plugin-react-compiler": "^1.0.0",
     "baseline-browser-mapping": "^2.9.19",
     "dotenv": "^17.4.2",
