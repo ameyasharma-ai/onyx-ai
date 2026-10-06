@@ -167,7 +167,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: runs-on/action@4e5f72399b6b17f2e79c511c1b38a315a64d22dc
+      - uses: runs-on/action@dfae4d98c5537a0dc7bbb7e6b9211f30ba240f6d
 
       - name: Checkout code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # ratchet:actions/checkout@v6
@@ -220,7 +220,7 @@ jobs:
       DISABLE_TELEMETRY: "true"
 
     steps:
-      - uses: runs-on/action@4e5f72399b6b17f2e79c511c1b38a315a64d22dc
+      - uses: runs-on/action@dfae4d98c5537a0dc7bbb7e6b9211f30ba240f6d
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
