@@ -188,7 +188,7 @@ loadtest = [
 # Model server specific dependencies (ML packages)
 model_server = [
     "accelerate==1.6.0",
-    "einops==0.8.1",
+    "einops==0.8.2",
     "numpy==2.4.1",
     "sentence-transformers==5.4.1",
     "torch==2.9.1",
